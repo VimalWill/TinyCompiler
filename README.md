@@ -2,6 +2,8 @@
 Minimal implementation for graph compiler with torch_mlir frontend to compile AI workloads to the NVIDIA GPU. The soul purpose of the project to understand the graph compilers and MLIR-framework. 
 
 ## focused Graph Optimization 
+> More optimization will be focused in future and looking for colabs for the project and learning process
+
 <h3>Operator fusion</h3>
 
 A custom fusion dialect to handle hardware-independent operator fusion 
@@ -25,3 +27,4 @@ def @main(%data: Tensor[(1, 3, 64, 64), float32] /* ty=Tensor[(1, 3, 64, 64), fl
 }
 ```
 from the example, the complex-out-fusable can be fused with the element-wise operator i.e., ReLu in this case to form as single operator.
+
