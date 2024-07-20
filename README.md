@@ -3,6 +3,7 @@ Minimal implementation for graph compiler with torch_mlir frontend to compile AI
 
 ## focused Graph Optimization 
 <h3>Operator fusion</h3>
+
 A custom fusion dialect to handle hardware-independent operator fusion 
 for DNN operator and the approach adopted from [TVM](https://layman-n-ish.github.io/pdfs/TVM_Review_Report.pdf).\
 <b>example:</b>
