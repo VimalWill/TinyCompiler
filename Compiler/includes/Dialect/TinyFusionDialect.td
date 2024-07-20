@@ -19,17 +19,13 @@ def Tiny_Fusion_Dialect : Dialect {
     let summary = "tiny-fusion dialect for operator fusion"; 
     let description = [{
         fusion dialect of tiny compiler applies hardware-indep
-        operator fusion to the DNN operators.
+        operator fusion to the DNN operators. The dialect can 
+        be the lower level abstruction to TOSA dialect.
         
         ref paper: https://layman-n-ish.github.io/pdfs/TVM_Review_Report.pdf
     }]; 
 
     let cppNamespace = "::mlir::tinyfusion"; 
-}
-
-
-def fusionOp : Tiny_Fusion_Dialect {
-    
 }
 
 #endif //_COMPILER_INCLUDES_TINYFUSIONDIALECT_TD_

@@ -1,0 +1,8 @@
+#ifndef _COMPILER_INCLUDES_DIALECT_TINYFUSIONOPS_TD_
+#define _COMPILER_INCLUDES_DIALECT_TINYFUSIONOPS_TD_
+
+include "Dialect/TinyFusionDialect.td"
+
+//TODO: work on the fusion operation
+
+#endif //_COMPILER_INCLUDES_DIALECT_TINYFUSIONOPS_TD_
