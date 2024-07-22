@@ -25,7 +25,11 @@ def Tiny_Fusion_Dialect : Dialect {
         ref paper: https://layman-n-ish.github.io/pdfs/TVM_Review_Report.pdf
     }]; 
 
-    let cppNamespace = "::mlir::tinyfusion"; 
+    let dependentDialects = [
+        "tosa::TosaDialect"
+    ]; 
+
+    let cppNamespace = "::mlir::TinyFusion"; 
 }
 
 #endif //_COMPILER_INCLUDES_TINYFUSIONDIALECT_TD_
