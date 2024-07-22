@@ -7,7 +7,7 @@ namespace mlir {
     class Pass; 
 
     namespace TinyFusion {
-        std::unique_ptr<mlir::Pass> createComplexFuseRelu(); 
+        std::unique_ptr<mlir::Pass> createLowingToTinyFusion(); 
     }
 }
 
