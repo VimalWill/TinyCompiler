@@ -3,6 +3,7 @@ set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(dialect TinyFusion)
 set(dialect_namespace TinyFusion)
 set(LLVM_TARGET_DEFINITIONS ${dialect}Dialect.td)
+set(LLVM_TARGET_DEFINITIONS ${dialect}Ops.td)
 
 mlir_tablegen(${dialect}Ops.h.inc -gen-op-decls)
 mlir_tablegen(${dialect}Ops.cpp.inc -gen-op-defs)
