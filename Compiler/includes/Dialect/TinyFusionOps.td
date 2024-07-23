@@ -3,13 +3,17 @@
 
 include "Dialect/TinyFusionDialect.td"
 
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
+
 // Define the TinyFusion operation base class
 class Tiny_Fusion_Op<string mnemonic, list<Trait> traits = []> : Op<Tiny_Fusion_Dialect, mnemonic, traits>;
 
 //===----------------------------------------------------------------------===//
 // Conv2dReluOp
 //===----------------------------------------------------------------------===//
-def Conv2dReluOp : Tiny_Fusion_Op<"conv2d_relu", [NoSideEffect]> {
+def Conv2dReluOp : Tiny_Fusion_Op<"conv2d_relu", [Pure]> {
     let summary = "Conv2D followed by ReLU fusion operation";
     let description = [{
         Fuse a Conv2D operation with a ReLU activation function.
@@ -22,21 +26,16 @@ def Conv2dReluOp : Tiny_Fusion_Op<"conv2d_relu", [NoSideEffect]> {
     let arguments = (ins
         TensorOf<[F32]>:$input_tensor,
         TensorOf<[F32]>:$weight_tensor,
-        TensorOf<[F32]>:$bias_tensor,
+        Optional<TensorOf<[F32]>>:$bias_tensor,
         ArrayAttr:$dilation, 
         ArrayAttr:$padding,
         ArrayAttr:$stride,
-        FloatAttr:$max_fp,
-        FloatAttr:$min_fp
+        F32Attr:$max_fp,
+        F32Attr:$min_fp
     );
 
     // Define the operation results
     let results = (outs TensorOf<[F32]>:$result);
-
-    // Assembly format for printing the operation
-    let assemblyFormat = [{
-        $input_tensor `,` $weight_tensor `,` $bias_tensor ` ` attr-dict ` : ` type($input_tensor) `,` type($weight_tensor) `,` type($bias_tensor) ` -> ` type($result)
-    }];
 
     // Define how to build the operation
     let builders = [

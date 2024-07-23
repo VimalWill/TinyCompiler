@@ -36,8 +36,8 @@ namespace {
             auto padding = rewriter.getI64ArrayAttr(convOp.getPad());
             auto stride = rewriter.getI64ArrayAttr(convOp.getStride());
 
-            auto max_fp = rewriter.getF32ArrayAttr(clampOp.getMaxFp().convertToFloat());
-            auto min_fp = rewriter.getF32ArrayAttr(clampOp.getMinFp().convertToFloat());
+            auto max_fp = rewriter.getF32FloatAttr(clampOp.getMaxFp().convertToFloat());
+            auto min_fp = rewriter.getF32FloatAttr(clampOp.getMinFp().convertToFloat());
 
             rewriter.replaceOpWithNewOp<Conv2dReluOp>(
                 clampOp, reshapeOp.getType(), input, filter, bias, dilation, padding, stride, max_fp, min_fp

@@ -10,6 +10,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Pass/PassBase.td"
 include "mlir/IR/AttrTypeBase.td"
 
+
 //===----------------------------------------------------------------------===//
 // Tiny Fusion Dialect
 //===----------------------------------------------------------------------===//

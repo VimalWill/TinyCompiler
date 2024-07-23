@@ -1,2 +1,0 @@
-/usr/bin/ar Dqc libMLIRTinyFusion.a CMakeFiles/obj.MLIRTinyFusion.dir/TinyFusionDialect.cpp.o CMakeFiles/obj.MLIRTinyFusion.dir/LowerToTinyFusion.cpp.o
-/usr/bin/ranlib -D libMLIRTinyFusion.a
