@@ -1,8 +1,14 @@
-#include "includes/Dialect/TinyFusionDialect.h"
+#include "Dialect/TinyFusionDialect.h"
 
 using namespace mlir; 
 using namespace mlir::TinyFusion; 
 
-#include "includes/Dialect/TinyFusionDialect.cpp.inc"
+#include "Dialect/TinyFusionDialect.cpp.inc"
 
-//todo: initalize dialect
+void TinyFusionDialect::initialize() {
+  addOperations<
+#define GET_OP_LIST
+
+#include "Dialect/TinyFusionOps.cpp.inc"
+          >();
+}

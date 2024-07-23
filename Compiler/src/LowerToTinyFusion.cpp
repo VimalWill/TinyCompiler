@@ -1,5 +1,5 @@
-#include "includes/Dialect/TinyFusionDialect.h"
-#include "includes/Dialect/Passes.h"
+#include "Dialect/TinyFusionDialect.h"
+#include "Dialect/Passes.h"
 
 #include "mlir/Pass/Pass.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -28,18 +28,18 @@ namespace {
             auto clampOp = dyn_cast_or_null<tosa::ClampOp>(reshapeOp->getNextNode());
             if (!clampOp) return failure();
 
-            auto input = convOp.input();
-            auto filter = convOp.filter();
-            auto bias = convOp.bias();
+            auto input = convOp.getOperand(0); 
+            auto filter = convOp.getOperand(1); 
+            auto bias = convOp.getOperand(2); 
 
-            auto dilation = rewriter.getI64ArrayAttr(convOp.dilation());
-            auto padding = rewriter.getI64ArrayAttr(convOp.padding());
-            auto stride = rewriter.getI64ArrayAttr(convOp.stride());
+            auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
+            auto padding = rewriter.getI64ArrayAttr(convOp.getPad());
+            auto stride = rewriter.getI64ArrayAttr(convOp.getStride());
 
-            auto max_fp = rewriter.getF32ArrayAttr(clampOp.max_fp().convertToFloat());
-            auto min_fp = rewriter.getF32ArrayAttr(clampOp.min_fp().convertToFloat());
+            auto max_fp = rewriter.getF32ArrayAttr(clampOp.getMaxFp().convertToFloat());
+            auto min_fp = rewriter.getF32ArrayAttr(clampOp.getMinFp().convertToFloat());
 
-            rewriter.replaceOpWithNewOp<TinyFusion::Conv2dReluOp>(
+            rewriter.replaceOpWithNewOp<Conv2dReluOp>(
                 clampOp, reshapeOp.getType(), input, filter, bias, dilation, padding, stride, max_fp, min_fp
             );
 
