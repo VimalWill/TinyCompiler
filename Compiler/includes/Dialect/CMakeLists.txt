@@ -14,3 +14,6 @@ mlir_tablegen(${dialect}Dialect.cpp.inc -gen-dialect-defs
 
 
 add_public_tablegen_target(MLIR${dialect}IncGen)
+
+
+

@@ -113,16 +113,39 @@ public:
     return properties;
   }
 
-  ::mlir::DictionaryAttr getAttributes();
-  ::mlir::ArrayAttr getDilationAttr();
+  ::mlir::DictionaryAttr getAttributes() {
+    return odsAttrs;
+  }
+
+  ::mlir::ArrayAttr getDilationAttr() {
+    auto attr = ::llvm::cast<::mlir::ArrayAttr>(getProperties().dilation);
+    return attr;
+  }
+
   ::mlir::ArrayAttr getDilation();
-  ::mlir::ArrayAttr getPaddingAttr();
+  ::mlir::ArrayAttr getPaddingAttr() {
+    auto attr = ::llvm::cast<::mlir::ArrayAttr>(getProperties().padding);
+    return attr;
+  }
+
   ::mlir::ArrayAttr getPadding();
-  ::mlir::ArrayAttr getStrideAttr();
+  ::mlir::ArrayAttr getStrideAttr() {
+    auto attr = ::llvm::cast<::mlir::ArrayAttr>(getProperties().stride);
+    return attr;
+  }
+
   ::mlir::ArrayAttr getStride();
-  ::mlir::FloatAttr getMaxFpAttr();
+  ::mlir::FloatAttr getMaxFpAttr() {
+    auto attr = ::llvm::cast<::mlir::FloatAttr>(getProperties().max_fp);
+    return attr;
+  }
+
   ::llvm::APFloat getMaxFp();
-  ::mlir::FloatAttr getMinFpAttr();
+  ::mlir::FloatAttr getMinFpAttr() {
+    auto attr = ::llvm::cast<::mlir::FloatAttr>(getProperties().min_fp);
+    return attr;
+  }
+
   ::llvm::APFloat getMinFp();
 };
 } // namespace detail
@@ -234,16 +257,50 @@ public:
   }
 
   std::pair<unsigned, unsigned> getODSOperandIndexAndLength(unsigned index);
-  ::mlir::Operation::operand_range getODSOperands(unsigned index);
-  ::mlir::TypedValue<::mlir::TensorType> getInputTensor();
-  ::mlir::TypedValue<::mlir::TensorType> getWeightTensor();
-  ::mlir::TypedValue<::mlir::TensorType> getBiasTensor();
-  ::mlir::OpOperand &getInputTensorMutable();
-  ::mlir::OpOperand &getWeightTensorMutable();
+  ::mlir::Operation::operand_range getODSOperands(unsigned index) {
+    auto valueRange = getODSOperandIndexAndLength(index);
+    return {std::next(getOperation()->operand_begin(), valueRange.first),
+             std::next(getOperation()->operand_begin(), valueRange.first + valueRange.second)};
+  }
+
+  ::mlir::TypedValue<::mlir::TensorType> getInputTensor() {
+    return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(0).begin());
+  }
+
+  ::mlir::TypedValue<::mlir::TensorType> getWeightTensor() {
+    return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(1).begin());
+  }
+
+  ::mlir::TypedValue<::mlir::TensorType> getBiasTensor() {
+    auto operands = getODSOperands(2);
+    return operands.empty() ? ::mlir::TypedValue<::mlir::TensorType>{} : ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*operands.begin());
+  }
+
+  ::mlir::OpOperand &getInputTensorMutable() {
+    auto range = getODSOperandIndexAndLength(0);
+    return getOperation()->getOpOperand(range.first);
+  }
+
+  ::mlir::OpOperand &getWeightTensorMutable() {
+    auto range = getODSOperandIndexAndLength(1);
+    return getOperation()->getOpOperand(range.first);
+  }
+
   ::mlir::MutableOperandRange getBiasTensorMutable();
-  std::pair<unsigned, unsigned> getODSResultIndexAndLength(unsigned index);
-  ::mlir::Operation::result_range getODSResults(unsigned index);
-  ::mlir::TypedValue<::mlir::TensorType> getResult();
+  std::pair<unsigned, unsigned> getODSResultIndexAndLength(unsigned index) {
+    return {index, 1};
+  }
+
+  ::mlir::Operation::result_range getODSResults(unsigned index) {
+    auto valueRange = getODSResultIndexAndLength(index);
+    return {std::next(getOperation()->result_begin(), valueRange.first),
+             std::next(getOperation()->result_begin(), valueRange.first + valueRange.second)};
+  }
+
+  ::mlir::TypedValue<::mlir::TensorType> getResult() {
+    return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSResults(0).begin());
+  }
+
   static ::mlir::LogicalResult setPropertiesFromAttr(Properties &prop, ::mlir::Attribute attr, ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError);
   static ::mlir::Attribute getPropertiesAsAttr(::mlir::MLIRContext *ctx, const Properties &prop);
   static llvm::hash_code computePropertiesHash(const Properties &prop);
@@ -253,22 +310,52 @@ public:
   static ::mlir::LogicalResult verifyInherentAttrs(::mlir::OperationName opName, ::mlir::NamedAttrList &attrs, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError);
   static ::mlir::LogicalResult readProperties(::mlir::DialectBytecodeReader &reader, ::mlir::OperationState &state);
   void writeProperties(::mlir::DialectBytecodeWriter &writer);
-  ::mlir::ArrayAttr getDilationAttr();
+  ::mlir::ArrayAttr getDilationAttr() {
+    return ::llvm::cast<::mlir::ArrayAttr>(getProperties().dilation);
+  }
+
   ::mlir::ArrayAttr getDilation();
-  ::mlir::ArrayAttr getPaddingAttr();
+  ::mlir::ArrayAttr getPaddingAttr() {
+    return ::llvm::cast<::mlir::ArrayAttr>(getProperties().padding);
+  }
+
   ::mlir::ArrayAttr getPadding();
-  ::mlir::ArrayAttr getStrideAttr();
+  ::mlir::ArrayAttr getStrideAttr() {
+    return ::llvm::cast<::mlir::ArrayAttr>(getProperties().stride);
+  }
+
   ::mlir::ArrayAttr getStride();
-  ::mlir::FloatAttr getMaxFpAttr();
+  ::mlir::FloatAttr getMaxFpAttr() {
+    return ::llvm::cast<::mlir::FloatAttr>(getProperties().max_fp);
+  }
+
   ::llvm::APFloat getMaxFp();
-  ::mlir::FloatAttr getMinFpAttr();
+  ::mlir::FloatAttr getMinFpAttr() {
+    return ::llvm::cast<::mlir::FloatAttr>(getProperties().min_fp);
+  }
+
   ::llvm::APFloat getMinFp();
-  void setDilationAttr(::mlir::ArrayAttr attr);
-  void setPaddingAttr(::mlir::ArrayAttr attr);
-  void setStrideAttr(::mlir::ArrayAttr attr);
-  void setMaxFpAttr(::mlir::FloatAttr attr);
+  void setDilationAttr(::mlir::ArrayAttr attr) {
+    getProperties().dilation = attr;
+  }
+
+  void setPaddingAttr(::mlir::ArrayAttr attr) {
+    getProperties().padding = attr;
+  }
+
+  void setStrideAttr(::mlir::ArrayAttr attr) {
+    getProperties().stride = attr;
+  }
+
+  void setMaxFpAttr(::mlir::FloatAttr attr) {
+    getProperties().max_fp = attr;
+  }
+
   void setMaxFp(::llvm::APFloat attrValue);
-  void setMinFpAttr(::mlir::FloatAttr attr);
+  void setMinFpAttr(::mlir::FloatAttr attr) {
+    getProperties().min_fp = attr;
+  }
+
   void setMinFp(::llvm::APFloat attrValue);
   static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, Value input_tensor, Value weight_tensor, Value bias_tensor, ArrayAttr dilation, ArrayAttr padding, ArrayAttr stride, FloatAttr max_fp, FloatAttr min_fp);
   static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, /*optional*/::mlir::Value bias_tensor, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride, ::mlir::FloatAttr max_fp, ::mlir::FloatAttr min_fp);

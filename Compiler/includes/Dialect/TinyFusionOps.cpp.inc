@@ -95,22 +95,8 @@ std::pair<unsigned, unsigned> Conv2dReluOpGenericAdaptorBase::getODSOperandIndex
   return {start, size};
 }
 
-::mlir::DictionaryAttr Conv2dReluOpGenericAdaptorBase::getAttributes() {
-  return odsAttrs;
-}
-
-::mlir::ArrayAttr Conv2dReluOpGenericAdaptorBase::getDilationAttr() {
-  auto attr = ::llvm::cast<::mlir::ArrayAttr>(getProperties().dilation);
-  return attr;
-}
-
 ::mlir::ArrayAttr Conv2dReluOpGenericAdaptorBase::getDilation() {
   auto attr = getDilationAttr();
-  return attr;
-}
-
-::mlir::ArrayAttr Conv2dReluOpGenericAdaptorBase::getPaddingAttr() {
-  auto attr = ::llvm::cast<::mlir::ArrayAttr>(getProperties().padding);
   return attr;
 }
 
@@ -119,29 +105,14 @@ std::pair<unsigned, unsigned> Conv2dReluOpGenericAdaptorBase::getODSOperandIndex
   return attr;
 }
 
-::mlir::ArrayAttr Conv2dReluOpGenericAdaptorBase::getStrideAttr() {
-  auto attr = ::llvm::cast<::mlir::ArrayAttr>(getProperties().stride);
-  return attr;
-}
-
 ::mlir::ArrayAttr Conv2dReluOpGenericAdaptorBase::getStride() {
   auto attr = getStrideAttr();
-  return attr;
-}
-
-::mlir::FloatAttr Conv2dReluOpGenericAdaptorBase::getMaxFpAttr() {
-  auto attr = ::llvm::cast<::mlir::FloatAttr>(getProperties().max_fp);
   return attr;
 }
 
 ::llvm::APFloat Conv2dReluOpGenericAdaptorBase::getMaxFp() {
   auto attr = getMaxFpAttr();
   return attr.getValue();
-}
-
-::mlir::FloatAttr Conv2dReluOpGenericAdaptorBase::getMinFpAttr() {
-  auto attr = ::llvm::cast<::mlir::FloatAttr>(getProperties().min_fp);
-  return attr;
 }
 
 ::llvm::APFloat Conv2dReluOpGenericAdaptorBase::getMinFp() {
@@ -199,53 +170,10 @@ std::pair<unsigned, unsigned> Conv2dReluOp::getODSOperandIndexAndLength(unsigned
   return {start, size};
 }
 
-::mlir::Operation::operand_range Conv2dReluOp::getODSOperands(unsigned index) {
-  auto valueRange = getODSOperandIndexAndLength(index);
-  return {std::next(getOperation()->operand_begin(), valueRange.first),
-           std::next(getOperation()->operand_begin(), valueRange.first + valueRange.second)};
-}
-
-::mlir::TypedValue<::mlir::TensorType> Conv2dReluOp::getInputTensor() {
-  return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(0).begin());
-}
-
-::mlir::TypedValue<::mlir::TensorType> Conv2dReluOp::getWeightTensor() {
-  return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(1).begin());
-}
-
-::mlir::TypedValue<::mlir::TensorType> Conv2dReluOp::getBiasTensor() {
-  auto operands = getODSOperands(2);
-  return operands.empty() ? ::mlir::TypedValue<::mlir::TensorType>{} : ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*operands.begin());
-}
-
-::mlir::OpOperand &Conv2dReluOp::getInputTensorMutable() {
-  auto range = getODSOperandIndexAndLength(0);
-  return getOperation()->getOpOperand(range.first);
-}
-
-::mlir::OpOperand &Conv2dReluOp::getWeightTensorMutable() {
-  auto range = getODSOperandIndexAndLength(1);
-  return getOperation()->getOpOperand(range.first);
-}
-
 ::mlir::MutableOperandRange Conv2dReluOp::getBiasTensorMutable() {
   auto range = getODSOperandIndexAndLength(2);
   auto mutableRange = ::mlir::MutableOperandRange(getOperation(), range.first, range.second);
   return mutableRange;
-}
-
-std::pair<unsigned, unsigned> Conv2dReluOp::getODSResultIndexAndLength(unsigned index) {
-  return {index, 1};
-}
-
-::mlir::Operation::result_range Conv2dReluOp::getODSResults(unsigned index) {
-  auto valueRange = getODSResultIndexAndLength(index);
-  return {std::next(getOperation()->result_begin(), valueRange.first),
-           std::next(getOperation()->result_begin(), valueRange.first + valueRange.second)};
-}
-
-::mlir::TypedValue<::mlir::TensorType> Conv2dReluOp::getResult() {
-  return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSResults(0).begin());
 }
 
 ::mlir::LogicalResult Conv2dReluOp::setPropertiesFromAttr(Properties &prop, ::mlir::Attribute attr, ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
@@ -523,17 +451,9 @@ void Conv2dReluOp::writeProperties(::mlir::DialectBytecodeWriter &writer) {
   writer.writeAttribute(prop.stride);
 }
 
-::mlir::ArrayAttr Conv2dReluOp::getDilationAttr() {
-  return ::llvm::cast<::mlir::ArrayAttr>(getProperties().dilation);
-}
-
 ::mlir::ArrayAttr Conv2dReluOp::getDilation() {
   auto attr = getDilationAttr();
   return attr;
-}
-
-::mlir::ArrayAttr Conv2dReluOp::getPaddingAttr() {
-  return ::llvm::cast<::mlir::ArrayAttr>(getProperties().padding);
 }
 
 ::mlir::ArrayAttr Conv2dReluOp::getPadding() {
@@ -541,17 +461,9 @@ void Conv2dReluOp::writeProperties(::mlir::DialectBytecodeWriter &writer) {
   return attr;
 }
 
-::mlir::ArrayAttr Conv2dReluOp::getStrideAttr() {
-  return ::llvm::cast<::mlir::ArrayAttr>(getProperties().stride);
-}
-
 ::mlir::ArrayAttr Conv2dReluOp::getStride() {
   auto attr = getStrideAttr();
   return attr;
-}
-
-::mlir::FloatAttr Conv2dReluOp::getMaxFpAttr() {
-  return ::llvm::cast<::mlir::FloatAttr>(getProperties().max_fp);
 }
 
 ::llvm::APFloat Conv2dReluOp::getMaxFp() {
@@ -559,41 +471,17 @@ void Conv2dReluOp::writeProperties(::mlir::DialectBytecodeWriter &writer) {
   return attr.getValue();
 }
 
-::mlir::FloatAttr Conv2dReluOp::getMinFpAttr() {
-  return ::llvm::cast<::mlir::FloatAttr>(getProperties().min_fp);
-}
-
 ::llvm::APFloat Conv2dReluOp::getMinFp() {
   auto attr = getMinFpAttr();
   return attr.getValue();
 }
 
-void Conv2dReluOp::setDilationAttr(::mlir::ArrayAttr attr) {
-  (*this)->setAttr(getDilationAttrName(), attr);
-}
-
-void Conv2dReluOp::setPaddingAttr(::mlir::ArrayAttr attr) {
-  (*this)->setAttr(getPaddingAttrName(), attr);
-}
-
-void Conv2dReluOp::setStrideAttr(::mlir::ArrayAttr attr) {
-  (*this)->setAttr(getStrideAttrName(), attr);
-}
-
-void Conv2dReluOp::setMaxFpAttr(::mlir::FloatAttr attr) {
-  (*this)->setAttr(getMaxFpAttrName(), attr);
-}
-
 void Conv2dReluOp::setMaxFp(::llvm::APFloat attrValue) {
-  (*this)->setAttr(getMaxFpAttrName(), ::mlir::Builder((*this)->getContext()).getFloatAttr(::mlir::Builder((*this)->getContext()).getF32Type(), attrValue));
-}
-
-void Conv2dReluOp::setMinFpAttr(::mlir::FloatAttr attr) {
-  (*this)->setAttr(getMinFpAttrName(), attr);
+  getProperties().max_fp = ::mlir::Builder((*this)->getContext()).getFloatAttr(::mlir::Builder((*this)->getContext()).getF32Type(), attrValue);
 }
 
 void Conv2dReluOp::setMinFp(::llvm::APFloat attrValue) {
-  (*this)->setAttr(getMinFpAttrName(), ::mlir::Builder((*this)->getContext()).getFloatAttr(::mlir::Builder((*this)->getContext()).getF32Type(), attrValue));
+  getProperties().min_fp = ::mlir::Builder((*this)->getContext()).getFloatAttr(::mlir::Builder((*this)->getContext()).getF32Type(), attrValue);
 }
 
 void Conv2dReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, /*optional*/::mlir::Value bias_tensor, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride, ::mlir::FloatAttr max_fp, ::mlir::FloatAttr min_fp) {
