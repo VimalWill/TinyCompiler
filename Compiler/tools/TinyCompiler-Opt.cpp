@@ -24,6 +24,6 @@ int main(int argc, char** argv) {
     mlir::DialectRegistry registry; 
     registry.insert<mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect>(); 
     registerAllDialects(registry);    
-
+    
     return 0; 
 }

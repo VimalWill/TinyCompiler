@@ -8,7 +8,9 @@ using namespace mlir::TinyFusion;
 void TinyFusionDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
-
 #include "Dialect/TinyFusionOps.cpp.inc"
-          >();
+      >();
 }
+
+#define GET_OP_CLASSES
+#include "Dialect/TinyFusionOps.cpp.inc"

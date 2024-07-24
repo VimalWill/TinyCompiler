@@ -51,7 +51,7 @@ namespace {
 
 namespace {
     struct LowerTosaToTinyFusion : public PassWrapper<LowerTosaToTinyFusion, OperationPass<func::FuncOp>> {
-        MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(LowerTosaToTinyFusion);
+        // MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(LowerTosaToTinyFusion);
 
         void runOnOperation() override {
             auto func = getOperation();
