@@ -18,6 +18,8 @@
 using namespace mlir;
 using namespace mlir::TinyFusion;
 
+//https://discourse.llvm.org/t/linker-error-during-the-opt-linking-with-custom-mlir-dialect/80319
+
 int main(int argc, char** argv) {
     mlir::DialectRegistry registry; 
     registry.insert<mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect>(); 
