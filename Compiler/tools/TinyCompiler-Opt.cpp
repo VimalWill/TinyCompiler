@@ -13,33 +13,43 @@
 #include "mlir/Transforms/Passes.h"
 
 #include "mlir/InitAllDialects.h"
+#include "mlir/InitAllPasses.h"
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
+#include "mlir/Pass/PassRegistry.h"
 
 using namespace mlir;
 using namespace mlir::TinyFusion;
 
-// Custom pass pipeline for TinyFusion
-void TinyFusionPipeline(mlir::OpPassManager& manager) {
-    manager.addNestedPass<func::FuncOp>(mlir::TinyFusion::createLowerToTinyFusionPass());
-    manager.addPass(mlir::createCanonicalizerPass());
-    manager.addPass(mlir::createCSEPass());
-}
+
+// void TinyFusionPipeline(OpPassManager& manager) {
+//     manager.addNestedPass<func::FuncOp>(LowerTosaToTinyFusion());
+//     manager.addPass(createCanonicalizerPass());
+//     manager.addPass(createCSEPass());
+// }
 
 int main(int argc, char** argv) {
-    // Register TOSA and TinyFusion dialects
-    // mlir::DialectRegistry registry;
-    // registry.insert<mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect>();
-    // registerAllDialects(registry);
+    mlir::registerAllPasses(); 
+    mlir::TinyFusion::registerLowerToTinyFusionPass(); 
+    mlir::DialectRegistry registry;
+    registry.insert<mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect, mlir::func::FuncDialect>();
 
-    // // Create MLIR context and load all available dialects
-    // mlir::MLIRContext context(registry);
-    // context.loadAllAvailableDialects();
-    MLIRContext ctx;
-    ctx.loadDialect<mlir::func::FuncDialect, mlir::arith::ArithDialect, mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect>();
+    mlir::MLIRContext context(registry);
 
-    auto src = parseSourceFile<ModuleOp>(argv[1], &ctx);
-    src->print(llvm::outs());
+    // mlir::PassPipelineRegistration<>("test-tosa-to-tinyfusion",
+    //     "Run passes to lower TOSA models to TinyFusion",
+    //     TinyFusionPipeline);
+
+    // Add debugging output to verify dialect loading
+    llvm::errs() << "Registered Dialects:\n";
+    for (auto dialect : registry.getDialectNames()) {
+        llvm::errs() << "Registered Dialect: " << dialect  << "\n";
+    }
+
+
+    // return asMainReturnCode(
+    //     mlir::MlirOptMain(argc, argv, "TinyCompiler-opt", registry));
 
     return 0; 
 }
+

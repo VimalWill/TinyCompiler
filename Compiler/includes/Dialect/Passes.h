@@ -7,7 +7,8 @@ namespace mlir {
     class Pass; 
 
     namespace TinyFusion {
-        std::unique_ptr<mlir::Pass> createLowerToTinyFusionPass();  
+        // std::unique_ptr<mlir::Pass> createLowerToTinyFusionPass();  
+        void registerLowerToTinyFusionPass(); 
     }
 }
 
