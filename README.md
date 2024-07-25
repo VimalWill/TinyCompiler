@@ -24,8 +24,6 @@ module attributes {torch.debug_module_name = "SimpleConvModel"} {
   }
 }
 
-
-
 Relay graph after fusion:
 module attributes {torch.debug_module_name = "SimpleConvModel"} {
   func.func @forward(%arg0: tensor<1x1x5x5xf32>) -> tensor<1x1x5x5xf32> {
