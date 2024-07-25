@@ -25,22 +25,13 @@ namespace {
 
         LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, PatternRewriter &rewriter) const override {
             auto reshapeOpBeforeConv = convOp.getOperand(0).getDefiningOp<tosa::ReshapeOp>();
-            if (!reshapeOpBeforeConv) {
-                llvm::errs() << "No preceding reshape op found!\n"; 
-                return failure();
-            }
+            if (!reshapeOpBeforeConv) return failure(); 
 
             auto reshapeOpAfterConv = dyn_cast_or_null<tosa::ReshapeOp>(convOp->getNextNode());
-            if (!reshapeOpAfterConv) {
-                llvm::errs() << "No following reshape op found!\n"; 
-                return failure();
-            }
+            if (!reshapeOpAfterConv) return failure(); 
 
             auto clampOp = dyn_cast_or_null<tosa::ClampOp>(reshapeOpAfterConv->getNextNode());
-            if (!clampOp) {
-                llvm::errs() << "No following clamp op found!\n"; 
-                return failure();
-            }
+            if (!clampOp) return failure(); 
 
             // Create the fused TinyFusion.conv2d_relu operation
             auto input =  convOp.getOperand(0);
@@ -54,10 +45,6 @@ namespace {
             auto max_fp = rewriter.getF32FloatAttr(clampOp.getMaxFp().convertToFloat());
             auto min_fp = rewriter.getF32FloatAttr(clampOp.getMinFp().convertToFloat()); 
 
-            // Replace the sequence with the fused operation
-            //https://discourse.llvm.org/t/the-custom-mlir-pass-output-goes-wrong-and-need-some-help-in-the-code/80348
-
-            // rewriter.moveOpAfter(reshapeOpAfterConv, clampOp);
             auto fusedOp = rewriter.create<TinyFusion::Conv2dReluOp>(
                 reshapeOpAfterConv.getLoc(), convOp.getType(), input, filter, bias, 
                 dilation, padding, stride, max_fp, min_fp);
