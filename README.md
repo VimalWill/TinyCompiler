@@ -24,7 +24,6 @@ module attributes {torch.debug_module_name = "SimpleConvModel"} {
   }
 }
 
-
 Relay graph after fusion:
 module attributes {torch.debug_module_name = "SimpleConvModel"} {
   func.func @forward(%arg0: tensor<1x1x5x5xf32>) -> tensor<1x1x5x5xf32> {
@@ -36,7 +35,6 @@ module attributes {torch.debug_module_name = "SimpleConvModel"} {
     return %4 : tensor<1x1x5x5xf32>
   }
 }
-
 ```
 The above example holds "TinyFusion.conv2d_relu" operator is a fused version of "tosa.conv2d" and "tosa.clamp" operator. 
 
