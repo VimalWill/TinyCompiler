@@ -80,6 +80,12 @@ namespace {
 
             StringRef getArgument() const final { return "lower-tinyfusion"; }
             StringRef getDescription() const final { return "Lower TinyFusion Dialect."; }
+
+        void getDependentDialects(DialectRegistry &registry) const override {
+            registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect, 
+                            func::FuncDialect>(); 
+        }
+
         void runOnOperation() override {
             auto func = getOperation();
             MLIRContext *context = &getContext();

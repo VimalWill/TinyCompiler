@@ -47,9 +47,8 @@ int main(int argc, char** argv) {
     }
 
 
-    // return asMainReturnCode(
-    //     mlir::MlirOptMain(argc, argv, "TinyCompiler-opt", registry));
+    return asMainReturnCode(
+        mlir::MlirOptMain(argc, argv, "TinyCompiler-opt", registry));
 
-    return 0; 
 }
 
