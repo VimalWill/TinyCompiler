@@ -18,8 +18,6 @@ using namespace mlir::tosa;
 using namespace mlir::func;
 using namespace mlir::TinyFusion;
 
-//https://github.com/buddy-compiler/buddy-mlir/blob/main/midend/lib/Conversion/LowerDAP/LowerDAPPass.cpp
-
 namespace {
     class LowerToConv2dRelu : public OpRewritePattern<tosa::Conv2DOp> {
     public:
@@ -45,7 +43,7 @@ namespace {
             }
 
             // Create the fused TinyFusion.conv2d_relu operation
-            auto input = reshapeOpBeforeConv.getOperand();
+            auto input =  convOp.getOperand(0);
             auto filter = convOp.getOperand(1);
             auto bias = convOp.getOperand(2);
 
@@ -54,19 +52,26 @@ namespace {
             auto stride = rewriter.getI64ArrayAttr(convOp.getStride());
 
             auto max_fp = rewriter.getF32FloatAttr(clampOp.getMaxFp().convertToFloat());
-            auto min_fp = rewriter.getF32FloatAttr(clampOp.getMinFp().convertToFloat());
+            auto min_fp = rewriter.getF32FloatAttr(clampOp.getMinFp().convertToFloat()); 
 
             // Replace the sequence with the fused operation
+            //https://discourse.llvm.org/t/the-custom-mlir-pass-output-goes-wrong-and-need-some-help-in-the-code/80348
+
+            // rewriter.moveOpAfter(reshapeOpAfterConv, clampOp);
             auto fusedOp = rewriter.create<TinyFusion::Conv2dReluOp>(
-                clampOp.getLoc(), reshapeOpAfterConv.getType(), input, filter, bias, 
+                reshapeOpAfterConv.getLoc(), convOp.getType(), input, filter, bias, 
                 dilation, padding, stride, max_fp, min_fp);
 
-            rewriter.replaceOp(clampOp, fusedOp.getResult());
+            auto shapeOp = rewriter.create<tosa::ReshapeOp>(
+                clampOp.getLoc(), // Location for the new ReshapeOp
+                reshapeOpAfterConv.getResult().getType(), // The type of the result
+                fusedOp.getResult(),          // The result of the Conv2dReluOp
+                rewriter.getDenseI64ArrayAttr(reshapeOpAfterConv.getResult().getType().cast<RankedTensorType>().getShape()) // Shape attribute
+            );
 
-            // Erase intermediate ops
-            rewriter.eraseOp(reshapeOpAfterConv);
-            rewriter.eraseOp(convOp);
-            rewriter.eraseOp(reshapeOpBeforeConv);
+            rewriter.replaceOp(reshapeOpAfterConv, fusedOp.getResult());
+            rewriter.replaceOp(clampOp, shapeOp.getResult()); 
+
 
             return success();
         }
@@ -105,10 +110,6 @@ namespace {
         }
     };
 }
-
-// std::unique_ptr<mlir::Pass> mlir::TinyFusion::createLowerToTinyFusionPass() {
-//     return std::make_unique<LowerTosaToTinyFusion>();
-// }
 
 void mlir::TinyFusion::registerLowerToTinyFusionPass() {
     PassRegistration<LowerTosaToTinyFusion>(); 

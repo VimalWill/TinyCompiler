@@ -21,13 +21,6 @@
 using namespace mlir;
 using namespace mlir::TinyFusion;
 
-
-// void TinyFusionPipeline(OpPassManager& manager) {
-//     manager.addNestedPass<func::FuncOp>(LowerTosaToTinyFusion());
-//     manager.addPass(createCanonicalizerPass());
-//     manager.addPass(createCSEPass());
-// }
-
 int main(int argc, char** argv) {
     mlir::registerAllPasses(); 
     mlir::TinyFusion::registerLowerToTinyFusionPass(); 
@@ -35,17 +28,6 @@ int main(int argc, char** argv) {
     registry.insert<mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect, mlir::func::FuncDialect>();
 
     mlir::MLIRContext context(registry);
-
-    // mlir::PassPipelineRegistration<>("test-tosa-to-tinyfusion",
-    //     "Run passes to lower TOSA models to TinyFusion",
-    //     TinyFusionPipeline);
-
-    // Add debugging output to verify dialect loading
-    llvm::errs() << "Registered Dialects:\n";
-    for (auto dialect : registry.getDialectNames()) {
-        llvm::errs() << "Registered Dialect: " << dialect  << "\n";
-    }
-
 
     return asMainReturnCode(
         mlir::MlirOptMain(argc, argv, "TinyCompiler-opt", registry));
