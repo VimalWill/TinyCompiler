@@ -37,4 +37,6 @@ add_definitions(${LLVM_DEFINITIONS})
 add_subdirectory(includes)
 add_subdirectory(src)
 add_subdirectory(tools)
+
+find_package(pybind11 REQUIRED)
 add_subdirectory(python)

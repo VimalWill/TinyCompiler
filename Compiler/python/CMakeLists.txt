@@ -3,8 +3,8 @@ include(AddMLIRPython)
 declare_mlir_python_sources(MLIRTinyFusionPythonSources)
 declare_mlir_python_sources(MLIRTinyFusionPythonExtensions)
 
-declare_mlir_python_sources(MLIRHLOPythonSources.Dialects
-  ADD_TO_PARENT MLIRHLOPythonSources
+declare_mlir_python_sources(MLIRTinyFusionPythonSources.Dialects
+  ADD_TO_PARENT MLIRTinyFusionPythonSources
 )
 
 declare_mlir_dialect_python_bindings(
@@ -20,25 +20,28 @@ declare_mlir_python_extension(MLIRTinyFusionPythonExtensions.Main
   SOURCES
     TinyFusionExtension.cpp
   EMBED_CAPI_LINK_LIBS
-    TinyFusionCAPI
+    TinyFusionPythonCAPI
   PRIVATE_LINK_LIBS
     LLVMSupport
 )
 
-add_mlir_python_common_capi_library(TinyFusionCAPI
+add_mlir_python_common_capi_library(TinyFusionPythonCAPI
   INSTALL_COMPONENT MLIRTinyFusionPythonModules
   INSTALL_DESTINATION python_packages/mlir_tinyfusion/mlir/_mlir_libs
-  OUTPUT_DIRECTORY "${MLIR_HLO_BINARY_DIR}/python_packages/mlir_tinyfusion/mlir/_mlir_libs"
-  RELATIVE_INSTALL_ROOT "../../.."
+  OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/python_packages/mlir_tinyfusion/mlir/_mlir_libs"
+  # RELATIVE_INSTALL_ROOT "../../../.."
+  DECLARED_HEADERS
+    MLIRPythonCAPI.HeaderSources
   DECLARED_SOURCES
     MLIRPythonSources
     MLIRPythonExtension.RegisterEverything
     MLIRTinyFusionPythonSources
+    MLIRPythonSources.Core
     MLIRTinyFusionPythonExtensions
 )
 
 add_mlir_python_modules(MLIRTinyFusionPythonModules
-  ROOT_PREFIX "${MLIR_HLO_BINARY_DIR}/python_packages/mlir_tinyfusion/mlir"
+  ROOT_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/python_packages/mlir_tinyfusion/mlir"
   INSTALL_PREFIX "python_packages/mlir_tinyfusion/mlir"
   DECLARED_SOURCES
     MLIRPythonSources
@@ -46,5 +49,5 @@ add_mlir_python_modules(MLIRTinyFusionPythonModules
     MLIRTinyFusionPythonSources
     MLIRTinyFusionPythonExtensions
   COMMON_CAPI_LINK_LIBS
-    TinyFusionCAPI
+    TinyFusionPythonCAPI
   )

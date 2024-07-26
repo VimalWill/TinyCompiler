@@ -1,16 +1,16 @@
-#ifndef _TINYCOMPILER_COMPILER_INCLUDES_DIALECT_TINYFUSIONCAPI_H_
-#define _TINYCOMPILER_COMPILER_INCLUDES_DIALECT_TINYFUSIONCAPI_H_
+#ifndef _TINYFUSION_DIALECT_C_API_H_
+#define _TINYFUSION_DIALECT_C_API_H_
 
-#include "mlir-c/IR.h"
+#include "mlir-c/RegisterEverything.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
-MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(TinyFusion, TinyFusion); 
+MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(TinyFusion, TinyFusion);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //_TINYCOMPILER_COMPILER_INCLUDES_DIALECT_TINYFUSIONCAPI_H_
+#endif  // _TINYFUSION_DIALECT_C_API_H_
