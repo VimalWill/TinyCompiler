@@ -10,7 +10,8 @@
 #ifdef GET_OP_LIST
 #undef GET_OP_LIST
 
-::mlir::TinyFusion::Conv2dReluOp
+::mlir::TinyFusion::Conv2dReluOp,
+::mlir::TinyFusion::Conv2dSiluOp
 #endif  // GET_OP_LIST
 
 #ifdef GET_OP_CLASSES
@@ -620,6 +621,342 @@ void Conv2dReluOp::getEffects(::llvm::SmallVectorImpl<::mlir::SideEffects::Effec
 } // namespace TinyFusion
 } // namespace mlir
 MLIR_DEFINE_EXPLICIT_TYPE_ID(::mlir::TinyFusion::Conv2dReluOp)
+
+namespace mlir {
+namespace TinyFusion {
+
+//===----------------------------------------------------------------------===//
+// ::mlir::TinyFusion::Conv2dSiluOp definitions
+//===----------------------------------------------------------------------===//
+
+namespace detail {
+Conv2dSiluOpGenericAdaptorBase::Conv2dSiluOpGenericAdaptorBase(::mlir::DictionaryAttr attrs, const Properties &properties, ::mlir::RegionRange regions) : odsAttrs(attrs), properties(properties), odsRegions(regions) {  if (odsAttrs)
+    odsOpName.emplace("TinyFusion.conv2d_silu", odsAttrs.getContext());
+}
+
+Conv2dSiluOpGenericAdaptorBase::Conv2dSiluOpGenericAdaptorBase(Conv2dSiluOp op) : Conv2dSiluOpGenericAdaptorBase(op->getDiscardableAttrDictionary(), op.getProperties(), op->getRegions()) {}
+
+::mlir::ArrayAttr Conv2dSiluOpGenericAdaptorBase::getDilation() {
+  auto attr = getDilationAttr();
+  return attr;
+}
+
+::mlir::ArrayAttr Conv2dSiluOpGenericAdaptorBase::getPadding() {
+  auto attr = getPaddingAttr();
+  return attr;
+}
+
+::mlir::ArrayAttr Conv2dSiluOpGenericAdaptorBase::getStride() {
+  auto attr = getStrideAttr();
+  return attr;
+}
+
+} // namespace detail
+Conv2dSiluOpAdaptor::Conv2dSiluOpAdaptor(Conv2dSiluOp op) : Conv2dSiluOpGenericAdaptor(op->getOperands(), op) {}
+
+::mlir::LogicalResult Conv2dSiluOpAdaptor::verify(::mlir::Location loc) {
+  auto tblgen_dilation = getProperties().dilation; (void)tblgen_dilation;
+  if (!tblgen_dilation) return emitError(loc, "'TinyFusion.conv2d_silu' op ""requires attribute 'dilation'");
+  auto tblgen_padding = getProperties().padding; (void)tblgen_padding;
+  if (!tblgen_padding) return emitError(loc, "'TinyFusion.conv2d_silu' op ""requires attribute 'padding'");
+  auto tblgen_stride = getProperties().stride; (void)tblgen_stride;
+  if (!tblgen_stride) return emitError(loc, "'TinyFusion.conv2d_silu' op ""requires attribute 'stride'");
+
+  if (tblgen_dilation && !((::llvm::isa<::mlir::ArrayAttr>(tblgen_dilation))))
+    return emitError(loc, "'TinyFusion.conv2d_silu' op ""attribute 'dilation' failed to satisfy constraint: array attribute");
+
+  if (tblgen_padding && !((::llvm::isa<::mlir::ArrayAttr>(tblgen_padding))))
+    return emitError(loc, "'TinyFusion.conv2d_silu' op ""attribute 'padding' failed to satisfy constraint: array attribute");
+
+  if (tblgen_stride && !((::llvm::isa<::mlir::ArrayAttr>(tblgen_stride))))
+    return emitError(loc, "'TinyFusion.conv2d_silu' op ""attribute 'stride' failed to satisfy constraint: array attribute");
+  return ::mlir::success();
+}
+
+::mlir::LogicalResult Conv2dSiluOp::setPropertiesFromAttr(Properties &prop, ::mlir::Attribute attr, ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
+  ::mlir::DictionaryAttr dict = ::llvm::dyn_cast<::mlir::DictionaryAttr>(attr);
+  if (!dict) {
+    emitError() << "expected DictionaryAttr to set properties";
+    return ::mlir::failure();
+  }
+
+  {
+    auto &propStorage = prop.dilation;
+       auto attr = dict.get("dilation");
+    if (attr || /*isRequired=*/true) {
+      if (!attr) {
+        emitError() << "expected key entry for dilation in DictionaryAttr to set "
+                   "Properties.";
+        return ::mlir::failure();
+      }
+      auto convertedAttr = ::llvm::dyn_cast<std::remove_reference_t<decltype(propStorage)>>(attr);
+      if (convertedAttr) {
+        propStorage = convertedAttr;
+      } else {
+        emitError() << "Invalid attribute `dilation` in property conversion: " << attr;
+        return ::mlir::failure();
+      }
+    }
+  }
+
+  {
+    auto &propStorage = prop.padding;
+       auto attr = dict.get("padding");
+    if (attr || /*isRequired=*/true) {
+      if (!attr) {
+        emitError() << "expected key entry for padding in DictionaryAttr to set "
+                   "Properties.";
+        return ::mlir::failure();
+      }
+      auto convertedAttr = ::llvm::dyn_cast<std::remove_reference_t<decltype(propStorage)>>(attr);
+      if (convertedAttr) {
+        propStorage = convertedAttr;
+      } else {
+        emitError() << "Invalid attribute `padding` in property conversion: " << attr;
+        return ::mlir::failure();
+      }
+    }
+  }
+
+  {
+    auto &propStorage = prop.stride;
+       auto attr = dict.get("stride");
+    if (attr || /*isRequired=*/true) {
+      if (!attr) {
+        emitError() << "expected key entry for stride in DictionaryAttr to set "
+                   "Properties.";
+        return ::mlir::failure();
+      }
+      auto convertedAttr = ::llvm::dyn_cast<std::remove_reference_t<decltype(propStorage)>>(attr);
+      if (convertedAttr) {
+        propStorage = convertedAttr;
+      } else {
+        emitError() << "Invalid attribute `stride` in property conversion: " << attr;
+        return ::mlir::failure();
+      }
+    }
+  }
+  return ::mlir::success();
+}
+
+::mlir::Attribute Conv2dSiluOp::getPropertiesAsAttr(::mlir::MLIRContext *ctx, const Properties &prop) {
+    ::mlir::SmallVector<::mlir::NamedAttribute> attrs;
+    ::mlir::Builder odsBuilder{ctx};
+
+    {
+      const auto &propStorage = prop.dilation;
+      if (propStorage)
+        attrs.push_back(odsBuilder.getNamedAttr("dilation",
+                                       propStorage));
+    }
+
+    {
+      const auto &propStorage = prop.padding;
+      if (propStorage)
+        attrs.push_back(odsBuilder.getNamedAttr("padding",
+                                       propStorage));
+    }
+
+    {
+      const auto &propStorage = prop.stride;
+      if (propStorage)
+        attrs.push_back(odsBuilder.getNamedAttr("stride",
+                                       propStorage));
+    }
+
+  if (!attrs.empty())
+    return odsBuilder.getDictionaryAttr(attrs);
+  return {};
+}
+
+llvm::hash_code Conv2dSiluOp::computePropertiesHash(const Properties &prop) {
+  return llvm::hash_combine(
+    llvm::hash_value(prop.dilation.getAsOpaquePointer()), 
+    llvm::hash_value(prop.padding.getAsOpaquePointer()), 
+    llvm::hash_value(prop.stride.getAsOpaquePointer()));
+}
+
+std::optional<mlir::Attribute> Conv2dSiluOp::getInherentAttr(::mlir::MLIRContext *ctx, const Properties &prop, llvm::StringRef name) {
+    if (name == "dilation")
+      return prop.dilation;
+
+    if (name == "padding")
+      return prop.padding;
+
+    if (name == "stride")
+      return prop.stride;
+  return std::nullopt;
+}
+
+void Conv2dSiluOp::setInherentAttr(Properties &prop, llvm::StringRef name, mlir::Attribute value) {
+    if (name == "dilation") {
+       prop.dilation = ::llvm::dyn_cast_or_null<std::remove_reference_t<decltype(prop.dilation)>>(value);
+       return;
+    }
+
+    if (name == "padding") {
+       prop.padding = ::llvm::dyn_cast_or_null<std::remove_reference_t<decltype(prop.padding)>>(value);
+       return;
+    }
+
+    if (name == "stride") {
+       prop.stride = ::llvm::dyn_cast_or_null<std::remove_reference_t<decltype(prop.stride)>>(value);
+       return;
+    }
+}
+
+void Conv2dSiluOp::populateInherentAttrs(::mlir::MLIRContext *ctx, const Properties &prop, ::mlir::NamedAttrList &attrs) {
+    if (prop.dilation) attrs.append("dilation", prop.dilation);
+
+    if (prop.padding) attrs.append("padding", prop.padding);
+
+    if (prop.stride) attrs.append("stride", prop.stride);
+}
+
+::mlir::LogicalResult Conv2dSiluOp::verifyInherentAttrs(::mlir::OperationName opName, ::mlir::NamedAttrList &attrs, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
+    {
+      ::mlir::Attribute attr = attrs.get(getDilationAttrName(opName));
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "dilation", emitError)))
+        return ::mlir::failure();
+    }
+
+    {
+      ::mlir::Attribute attr = attrs.get(getPaddingAttrName(opName));
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "padding", emitError)))
+        return ::mlir::failure();
+    }
+
+    {
+      ::mlir::Attribute attr = attrs.get(getStrideAttrName(opName));
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "stride", emitError)))
+        return ::mlir::failure();
+    }
+    return ::mlir::success();
+}
+
+::mlir::LogicalResult Conv2dSiluOp::readProperties(::mlir::DialectBytecodeReader &reader, ::mlir::OperationState &state) {
+  auto &prop = state.getOrAddProperties<Properties>(); (void)prop;
+  if (::mlir::failed(reader.readAttribute(prop.dilation)))
+    return ::mlir::failure();
+
+  if (::mlir::failed(reader.readAttribute(prop.padding)))
+    return ::mlir::failure();
+
+  if (::mlir::failed(reader.readAttribute(prop.stride)))
+    return ::mlir::failure();
+  return ::mlir::success();
+}
+
+void Conv2dSiluOp::writeProperties(::mlir::DialectBytecodeWriter &writer) {
+  auto &prop = getProperties(); (void)prop;
+  writer.writeAttribute(prop.dilation);
+  writer.writeAttribute(prop.padding);
+  writer.writeAttribute(prop.stride);
+}
+
+::mlir::ArrayAttr Conv2dSiluOp::getDilation() {
+  auto attr = getDilationAttr();
+  return attr;
+}
+
+::mlir::ArrayAttr Conv2dSiluOp::getPadding() {
+  auto attr = getPaddingAttr();
+  return attr;
+}
+
+::mlir::ArrayAttr Conv2dSiluOp::getStride() {
+  auto attr = getStrideAttr();
+  return attr;
+}
+
+void Conv2dSiluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
+  odsState.addOperands(input_tensor);
+  odsState.addOperands(weight_tensor);
+  odsState.addOperands(bias_tensor);
+  odsState.getOrAddProperties<Properties>().dilation = dilation;
+  odsState.getOrAddProperties<Properties>().padding = padding;
+  odsState.getOrAddProperties<Properties>().stride = stride;
+  odsState.addTypes(result);
+}
+
+void Conv2dSiluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
+  odsState.addOperands(input_tensor);
+  odsState.addOperands(weight_tensor);
+  odsState.addOperands(bias_tensor);
+  odsState.getOrAddProperties<Properties>().dilation = dilation;
+  odsState.getOrAddProperties<Properties>().padding = padding;
+  odsState.getOrAddProperties<Properties>().stride = stride;
+  assert(resultTypes.size() == 1u && "mismatched number of results");
+  odsState.addTypes(resultTypes);
+}
+
+void Conv2dSiluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::ValueRange operands, ::llvm::ArrayRef<::mlir::NamedAttribute> attributes) {
+  assert(operands.size() == 3u && "mismatched number of parameters");
+  odsState.addOperands(operands);
+  odsState.addAttributes(attributes);
+  assert(resultTypes.size() == 1u && "mismatched number of return types");
+  odsState.addTypes(resultTypes);
+}
+
+::mlir::LogicalResult Conv2dSiluOp::verifyInvariantsImpl() {
+  auto tblgen_dilation = getProperties().dilation; (void)tblgen_dilation;
+  if (!tblgen_dilation) return emitOpError("requires attribute 'dilation'");
+  auto tblgen_padding = getProperties().padding; (void)tblgen_padding;
+  if (!tblgen_padding) return emitOpError("requires attribute 'padding'");
+  auto tblgen_stride = getProperties().stride; (void)tblgen_stride;
+  if (!tblgen_stride) return emitOpError("requires attribute 'stride'");
+
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_dilation, "dilation")))
+    return ::mlir::failure();
+
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_padding, "padding")))
+    return ::mlir::failure();
+
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_stride, "stride")))
+    return ::mlir::failure();
+  {
+    unsigned index = 0; (void)index;
+    auto valueGroup0 = getODSOperands(0);
+
+    for (auto v : valueGroup0) {
+      if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "operand", index++)))
+        return ::mlir::failure();
+    }
+    auto valueGroup1 = getODSOperands(1);
+
+    for (auto v : valueGroup1) {
+      if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "operand", index++)))
+        return ::mlir::failure();
+    }
+    auto valueGroup2 = getODSOperands(2);
+
+    for (auto v : valueGroup2) {
+      if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "operand", index++)))
+        return ::mlir::failure();
+    }
+  }
+  {
+    unsigned index = 0; (void)index;
+    auto valueGroup0 = getODSResults(0);
+
+    for (auto v : valueGroup0) {
+      if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "result", index++)))
+        return ::mlir::failure();
+    }
+  }
+  return ::mlir::success();
+}
+
+::mlir::LogicalResult Conv2dSiluOp::verifyInvariants() {
+  return verifyInvariantsImpl();
+}
+
+void Conv2dSiluOp::getEffects(::llvm::SmallVectorImpl<::mlir::SideEffects::EffectInstance<::mlir::MemoryEffects::Effect>> &effects) {
+}
+
+} // namespace TinyFusion
+} // namespace mlir
+MLIR_DEFINE_EXPLICIT_TYPE_ID(::mlir::TinyFusion::Conv2dSiluOp)
 
 
 #endif  // GET_OP_CLASSES

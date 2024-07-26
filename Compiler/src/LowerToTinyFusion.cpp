@@ -19,6 +19,9 @@ using namespace mlir::func;
 using namespace mlir::TinyFusion;
 
 namespace {
+    class LowerToConv2dSilu : public OpRewritePattern<tosa::Conv2DOp> {
+
+    }; 
     class LowerToConv2dRelu : public OpRewritePattern<tosa::Conv2DOp> {
     public:
         using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;

@@ -34,12 +34,32 @@ def Conv2dReluOp : Tiny_Fusion_Op<"conv2d_relu", [Pure]> {
         F32Attr:$min_fp
     );
 
-    // Define the operation results
     let results = (outs TensorOf<[F32]>:$result);
-
-    // Define how to build the operation
     let builders = [
         OpBuilder<(ins "Value":$input_tensor, "Value":$weight_tensor, "Value":$bias_tensor, "ArrayAttr":$dilation, "ArrayAttr":$padding, "ArrayAttr":$stride, "FloatAttr":$max_fp, "FloatAttr":$min_fp)>
+    ];
+}
+
+
+//===----------------------------------------------------------------------===//
+// Conv2dSiluOp
+//===----------------------------------------------------------------------===//
+def Conv2dSiluOp : Tiny_Fusion_Op<"conv2d_silu", [Pure]> {
+    let summary = "Conv2d (complex op) can be fused with the Silu (elemwise) followed by"; 
+    let description = [{ TinyFusion.conv2d_silu }]; 
+
+    let arguments = (ins
+        TensorOf<[F32]>:$input_tensor,
+        TensorOf<[F32]>:$weight_tensor,
+        TensorOf<[F32]>:$bias_tensor, 
+        ArrayAttr:$dilation, 
+        ArrayAttr:$padding,
+        ArrayAttr:$stride
+    ); 
+
+    let results = (outs TensorOf<[F32]>:$result); 
+    let builders = [
+        OpBuilder<(ins "Value":$input_tensor, "Value":$weight_tensor, "Value":$bias_tensor, "ArrayAttr":$dilation, "ArrayAttr":$padding, "ArrayAttr":$stride)>
     ];
 }
 
