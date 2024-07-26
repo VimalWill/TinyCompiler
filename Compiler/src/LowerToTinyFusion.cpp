@@ -20,7 +20,45 @@ using namespace mlir::TinyFusion;
 
 namespace {
     class LowerToConv2dSilu : public OpRewritePattern<tosa::Conv2DOp> {
+    public:
+        using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern; 
 
+        LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, PatternRewriter &rewriter) const override {
+            auto reshapeAfterConvOp = dyn_cast_or_null<tosa::ReshapeOp>(convOp->getNextNode()); 
+            if(!reshapeAfterConvOp) return failure(); 
+
+            auto sigmoidOp = dyn_cast_or_null<tosa::SigmoidOp>(reshapeAfterConvOp->getNextNode()); 
+            if(!sigmoidOp) return failure(); 
+
+            auto mulOp = dyn_cast_or_null<tosa::MulOp>(sigmoidOp->getNextNode()); 
+            if(!mulOp) return failure(); 
+
+            auto Input = convOp.getOperand(0); 
+            auto Weight = convOp.getOperand(1); 
+            auto Bias = convOp.getOperand(2); 
+
+            auto Dilation = rewriter.getI64ArrayAttr(convOp.getDilation()); 
+            auto Padding = rewriter.getI64ArrayAttr(convOp.getPad()); 
+            auto Stride = rewriter.getI64ArrayAttr(convOp.getStride()); 
+
+            auto fuseOp = rewriter.create<TinyFusion::Conv2dSiluOp>(
+                sigmoidOp.getLoc(), convOp.getType(), Input, Weight, Bias, 
+                Dilation, Padding, Stride
+            ); 
+
+            auto reshapeOp = rewriter.create<tosa::ReshapeOp>(
+                mulOp.getLoc(), reshapeAfterConvOp.getResult().getType(), 
+                fuseOp.getResult(), 
+                rewriter.getDenseI64ArrayAttr(reshapeAfterConvOp.getResult().getType().cast<RankedTensorType>().getShape())); 
+
+            rewriter.replaceOp(sigmoidOp, fuseOp); 
+            rewriter.replaceOp(mulOp, reshapeOp); 
+
+            // rewriter.eraseOp(convOp); 
+            // rewriter.eraseOp(reshapeAfterConvOp); 
+
+            return success(); 
+        }
     }; 
     class LowerToConv2dRelu : public OpRewritePattern<tosa::Conv2DOp> {
     public:
@@ -87,6 +125,7 @@ namespace {
             RewritePatternSet patterns(context);
 
             patterns.add<LowerToConv2dRelu>(context);
+            patterns.add<LowerToConv2dSilu>(context); 
 
             ConversionTarget target(*context);
             target.addLegalDialect<TinyFusionDialect>();
