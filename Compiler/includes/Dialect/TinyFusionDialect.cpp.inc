@@ -12,9 +12,7 @@ namespace mlir {
 namespace TinyFusion {
 
 TinyFusionDialect::TinyFusionDialect(::mlir::MLIRContext *context)
-    : ::mlir::Dialect(getDialectNamespace(), context, ::mlir::TypeID::get<TinyFusionDialect>())
-    
-     {
+    : ::mlir::Dialect(getDialectNamespace(), context, ::mlir::TypeID::get<TinyFusionDialect>()) {
   getContext()->loadDialect<tosa::TosaDialect>();
   initialize();
 }
