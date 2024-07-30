@@ -1,7 +1,7 @@
 #include "Dialect/TinyFusionDialect.h"
 
-using namespace mlir; 
-using namespace mlir::TinyFusion; 
+using namespace mlir;
+using namespace mlir::TinyFusion;
 
 #include "Dialect/TinyFusionDialect.cpp.inc"
 

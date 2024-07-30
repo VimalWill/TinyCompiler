@@ -5,9 +5,9 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
-MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(TinyFusion, TinyFusion); 
+MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(TinyFusion, TinyFusion);
 
 #ifdef __cplusplus
 }
