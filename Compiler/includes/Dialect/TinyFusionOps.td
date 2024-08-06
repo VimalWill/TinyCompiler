@@ -63,4 +63,22 @@ def Conv2dSiluOp : Tiny_Fusion_Op<"conv2d_silu", [Pure]> {
     ];
 }
 
+//===----------------------------------------------------------------------===//
+// Conv2dSwishOp
+//===----------------------------------------------------------------------===//
+def Conv2dSwishOp : Tiny_Fusion_Op<"conv2d_swish", [Pure]> {
+    let summary = "conv2d (complex op) can be fused with the swish (elemwise) followed by"; 
+    let description = [{ TinyFusion.conv2d_swish }]; 
+
+    let arguments = (ins
+        TensorOf<[F32]>:$input_tensor, 
+        TensorOf<[F32]>:$weight_tensor,
+        ArrayAttr:$dilation, 
+        ArrayAttr:$padding, 
+        ArrayAttr:$stride
+    ); 
+
+    let results = (outs TensorOf<[F32]>:$result); 
+    //TODO: fix me with builder
+}
 #endif // _COMPILER_INCLUDES_DIALECT_TINYFUSIONOPS_TD_
