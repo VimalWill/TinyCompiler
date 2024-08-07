@@ -64,21 +64,25 @@ def Conv2dSiluOp : Tiny_Fusion_Op<"conv2d_silu", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Conv2dSwishOp
+// Conv2dLReluOp
 //===----------------------------------------------------------------------===//
-def Conv2dSwishOp : Tiny_Fusion_Op<"conv2d_swish", [Pure]> {
-    let summary = "conv2d (complex op) can be fused with the swish (elemwise) followed by"; 
-    let description = [{ TinyFusion.conv2d_swish }]; 
+def Conv2dLReluOp : Tiny_Fusion_Op<"conv2d_lrelu", [Pure]> {
+    let summary = "conv2d (complex op) can be fused with the leaky_relu (elemwise) followed by"; 
+    let description = [{ TinyFusion.conv2d_lrelu }]; 
 
     let arguments = (ins
         TensorOf<[F32]>:$input_tensor, 
         TensorOf<[F32]>:$weight_tensor,
+        TensorOf<[F32]>:$bias_tensor, 
+        ElementsAttr:$neg_slop,
         ArrayAttr:$dilation, 
         ArrayAttr:$padding, 
         ArrayAttr:$stride
     ); 
 
     let results = (outs TensorOf<[F32]>:$result); 
-    //TODO: fix me with builder
+    let builders = [
+        OpBuilder<(ins "Value":$input_tensor, "Value":$weight_tensor, "Value":$bias_tensor, "Value":$neg_slope, "ArrayAttr":$dilation, "ArrayAttr":$padding, "ArrayAttr":$stride)>
+    ]; 
 }
 #endif // _COMPILER_INCLUDES_DIALECT_TINYFUSIONOPS_TD_

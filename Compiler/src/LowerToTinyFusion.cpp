@@ -68,6 +68,58 @@ public:
     return success();
   }
 };
+
+
+
+class LowerToConv2dLRelu : public OpRewritePattern<tosa::Conv2DOp> {
+public:
+  using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, PatternRewriter &rewriter) const override {
+
+    auto reshapeOpAfterConv = dyn_cast_or_null<tosa::ReshapeOp>(convOp->getNextNode()); 
+    if(!reshapeOpAfterConv) return failure(); 
+    
+    auto maxOp = dyn_cast_or_null<tosa::MaximumOp>(reshapeOpAfterConv->getNextNode()); 
+    if(!maxOp) return failure(); 
+
+    auto minOp = dyn_cast_or_null<tosa::MinimumOp>(maxOp->getNextNode()); 
+    if(!minOp) return failure(); 
+
+    auto mulOp = dyn_cast_or_null<tosa::MulOp>(minOp->getNextNode()); 
+    if(!mulOp) return failure(); 
+
+    auto addOp = dyn_cast_or_null<tosa::AddOp>(mulOp->getNextNode()); 
+    if(!addOp) return failure(); 
+
+    auto constOp = mulOp.getOperand(1).getDefiningOp<tosa::ConstOp>(); 
+    auto negSlop = constOp.getValue(); 
+
+    auto Input = convOp.getOperand(0); 
+    auto Weight = convOp.getOperand(1); 
+    auto Bias = convOp.getOperand(2); 
+
+    auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation()); 
+    auto padding = rewriter.getI64ArrayAttr(convOp.getPad()); 
+    auto stride = rewriter.getI64ArrayAttr(convOp.getStride()); 
+
+    auto fuseOp = rewriter.create<TinyFusion::Conv2dLReluOp>(
+      convOp.getLoc(), convOp.getType(), Input, Weight, Bias, negSlop, dilation, 
+      padding, stride); 
+    
+    rewriter.replaceOp(convOp, fuseOp.getResult());
+
+    // rewriter.eraseOp(reshapeOpAfterConv); 
+    // rewriter.eraseOp(convOp); 
+    // rewriter.eraseOp(maxOp); 
+    // rewriter.eraseOp(minOp); 
+    // rewriter.eraseOp(addOp); 
+    // rewriter.eraseOp(mulOp); 
+
+    return success();
+  }
+};
+
 class LowerToConv2dRelu : public OpRewritePattern<tosa::Conv2DOp> {
 public:
   using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
@@ -142,6 +194,7 @@ public:
 
     patterns.add<LowerToConv2dRelu>(context);
     patterns.add<LowerToConv2dSilu>(context);
+    patterns.add<LowerToConv2dLRelu>(context); 
 
     ConversionTarget target(*context);
     target.addLegalDialect<TinyFusionDialect>();
