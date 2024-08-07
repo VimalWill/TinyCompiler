@@ -55,16 +55,6 @@ public:
     void setDilation(const ::mlir::ArrayAttr &propValue) {
       this->dilation = propValue;
     }
-    using neg_slopTy = ::mlir::ElementsAttr;
-    neg_slopTy neg_slop;
-
-    auto getNegSlop() {
-      auto &propStorage = this->neg_slop;
-      return ::llvm::cast<::mlir::ElementsAttr>(propStorage);
-    }
-    void setNegSlop(const ::mlir::ElementsAttr &propValue) {
-      this->neg_slop = propValue;
-    }
     using paddingTy = ::mlir::ArrayAttr;
     paddingTy padding;
 
@@ -88,7 +78,6 @@ public:
     bool operator==(const Properties &rhs) const {
       return 
         rhs.dilation == this->dilation &&
-        rhs.neg_slop == this->neg_slop &&
         rhs.padding == this->padding &&
         rhs.stride == this->stride &&
         true;
@@ -119,12 +108,6 @@ public:
     return odsAttrs;
   }
 
-  ::mlir::ElementsAttr getNegSlopAttr() {
-    auto attr = ::llvm::cast<::mlir::ElementsAttr>(getProperties().neg_slop);
-    return attr;
-  }
-
-  ::mlir::ElementsAttr getNegSlop();
   ::mlir::ArrayAttr getDilationAttr() {
     auto attr = ::llvm::cast<::mlir::ArrayAttr>(getProperties().dilation);
     return attr;
@@ -179,6 +162,10 @@ public:
     return (*getODSOperands(2).begin());
   }
 
+  ValueT getNegSlop() {
+    return (*getODSOperands(3).begin());
+  }
+
   RangeT getOperands() {
     return odsOperands;
   }
@@ -193,7 +180,7 @@ public:
 
   ::mlir::LogicalResult verify(::mlir::Location loc);
 };
-class Conv2dLReluOp : public ::mlir::Op<Conv2dLReluOp, ::mlir::OpTrait::ZeroRegions, ::mlir::OpTrait::OneResult, ::mlir::OpTrait::OneTypedResult<::mlir::TensorType>::Impl, ::mlir::OpTrait::ZeroSuccessors, ::mlir::OpTrait::NOperands<3>::Impl, ::mlir::OpTrait::OpInvariants, ::mlir::BytecodeOpInterface::Trait, ::mlir::ConditionallySpeculatable::Trait, ::mlir::OpTrait::AlwaysSpeculatableImplTrait, ::mlir::MemoryEffectOpInterface::Trait> {
+class Conv2dLReluOp : public ::mlir::Op<Conv2dLReluOp, ::mlir::OpTrait::ZeroRegions, ::mlir::OpTrait::OneResult, ::mlir::OpTrait::OneTypedResult<::mlir::TensorType>::Impl, ::mlir::OpTrait::ZeroSuccessors, ::mlir::OpTrait::NOperands<4>::Impl, ::mlir::OpTrait::OpInvariants, ::mlir::BytecodeOpInterface::Trait, ::mlir::ConditionallySpeculatable::Trait, ::mlir::OpTrait::AlwaysSpeculatableImplTrait, ::mlir::MemoryEffectOpInterface::Trait> {
 public:
   using Op::Op;
   using Op::print;
@@ -203,7 +190,7 @@ public:
   using FoldAdaptor = GenericAdaptor<::llvm::ArrayRef<::mlir::Attribute>>;
   using Properties = FoldAdaptor::Properties;
   static ::llvm::ArrayRef<::llvm::StringRef> getAttributeNames() {
-    static ::llvm::StringRef attrNames[] = {::llvm::StringRef("dilation"), ::llvm::StringRef("neg_slop"), ::llvm::StringRef("padding"), ::llvm::StringRef("stride")};
+    static ::llvm::StringRef attrNames[] = {::llvm::StringRef("dilation"), ::llvm::StringRef("padding"), ::llvm::StringRef("stride")};
     return ::llvm::ArrayRef(attrNames);
   }
 
@@ -215,28 +202,20 @@ public:
     return getAttributeNameForIndex(name, 0);
   }
 
-  ::mlir::StringAttr getNegSlopAttrName() {
+  ::mlir::StringAttr getPaddingAttrName() {
     return getAttributeNameForIndex(1);
   }
 
-  static ::mlir::StringAttr getNegSlopAttrName(::mlir::OperationName name) {
+  static ::mlir::StringAttr getPaddingAttrName(::mlir::OperationName name) {
     return getAttributeNameForIndex(name, 1);
   }
 
-  ::mlir::StringAttr getPaddingAttrName() {
+  ::mlir::StringAttr getStrideAttrName() {
     return getAttributeNameForIndex(2);
   }
 
-  static ::mlir::StringAttr getPaddingAttrName(::mlir::OperationName name) {
-    return getAttributeNameForIndex(name, 2);
-  }
-
-  ::mlir::StringAttr getStrideAttrName() {
-    return getAttributeNameForIndex(3);
-  }
-
   static ::mlir::StringAttr getStrideAttrName(::mlir::OperationName name) {
-    return getAttributeNameForIndex(name, 3);
+    return getAttributeNameForIndex(name, 2);
   }
 
   static constexpr ::llvm::StringLiteral getOperationName() {
@@ -265,6 +244,10 @@ public:
     return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(2).begin());
   }
 
+  ::mlir::TypedValue<::mlir::TensorType> getNegSlop() {
+    return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(3).begin());
+  }
+
   ::mlir::OpOperand &getInputTensorMutable() {
     auto range = getODSOperandIndexAndLength(0);
     return getOperation()->getOpOperand(range.first);
@@ -277,6 +260,11 @@ public:
 
   ::mlir::OpOperand &getBiasTensorMutable() {
     auto range = getODSOperandIndexAndLength(2);
+    return getOperation()->getOpOperand(range.first);
+  }
+
+  ::mlir::OpOperand &getNegSlopMutable() {
+    auto range = getODSOperandIndexAndLength(3);
     return getOperation()->getOpOperand(range.first);
   }
 
@@ -303,11 +291,6 @@ public:
   static ::mlir::LogicalResult verifyInherentAttrs(::mlir::OperationName opName, ::mlir::NamedAttrList &attrs, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError);
   static ::mlir::LogicalResult readProperties(::mlir::DialectBytecodeReader &reader, ::mlir::OperationState &state);
   void writeProperties(::mlir::DialectBytecodeWriter &writer);
-  ::mlir::ElementsAttr getNegSlopAttr() {
-    return ::llvm::cast<::mlir::ElementsAttr>(getProperties().neg_slop);
-  }
-
-  ::mlir::ElementsAttr getNegSlop();
   ::mlir::ArrayAttr getDilationAttr() {
     return ::llvm::cast<::mlir::ArrayAttr>(getProperties().dilation);
   }
@@ -323,10 +306,6 @@ public:
   }
 
   ::mlir::ArrayAttr getStride();
-  void setNegSlopAttr(::mlir::ElementsAttr attr) {
-    getProperties().neg_slop = attr;
-  }
-
   void setDilationAttr(::mlir::ArrayAttr attr) {
     getProperties().dilation = attr;
   }
@@ -340,11 +319,13 @@ public:
   }
 
   static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, Value input_tensor, Value weight_tensor, Value bias_tensor, Value neg_slope, ArrayAttr dilation, ArrayAttr padding, ArrayAttr stride);
-  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::ElementsAttr neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
-  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::ElementsAttr neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
+  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
+  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
   static void build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::ValueRange operands, ::llvm::ArrayRef<::mlir::NamedAttribute> attributes = {});
   ::mlir::LogicalResult verifyInvariantsImpl();
   ::mlir::LogicalResult verifyInvariants();
+  static ::mlir::ParseResult parse(::mlir::OpAsmParser &parser, ::mlir::OperationState &result);
+  void print(::mlir::OpAsmPrinter &_odsPrinter);
   void getEffects(::llvm::SmallVectorImpl<::mlir::SideEffects::EffectInstance<::mlir::MemoryEffects::Effect>> &effects);
 private:
   ::mlir::StringAttr getAttributeNameForIndex(unsigned index) {
@@ -352,7 +333,7 @@ private:
   }
 
   static ::mlir::StringAttr getAttributeNameForIndex(::mlir::OperationName name, unsigned index) {
-    assert(index < 4 && "invalid attribute index");
+    assert(index < 3 && "invalid attribute index");
     assert(name.getStringRef() == getOperationName() && "invalid operation name");
     assert(name.isRegistered() && "Operation isn't registered, missing a "
           "dependent dialect loading?");

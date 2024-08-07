@@ -38,9 +38,9 @@ static ::mlir::LogicalResult __mlir_ods_local_type_constraint_TinyFusionOps0(
 
 static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps0(
     ::mlir::Attribute attr, ::llvm::StringRef attrName, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
-  if (attr && !((::llvm::isa<::mlir::ElementsAttr>(attr))))
+  if (attr && !((::llvm::isa<::mlir::ArrayAttr>(attr))))
     return emitError() << "attribute '" << attrName
-        << "' failed to satisfy constraint: constant vector/tensor attribute";
+        << "' failed to satisfy constraint: array attribute";
   return ::mlir::success();
 }
 static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps0(
@@ -52,28 +52,14 @@ static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps0(
 
 static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps1(
     ::mlir::Attribute attr, ::llvm::StringRef attrName, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
-  if (attr && !((::llvm::isa<::mlir::ArrayAttr>(attr))))
-    return emitError() << "attribute '" << attrName
-        << "' failed to satisfy constraint: array attribute";
-  return ::mlir::success();
-}
-static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps1(
-    ::mlir::Operation *op, ::mlir::Attribute attr, ::llvm::StringRef attrName) {
-  return __mlir_ods_local_attr_constraint_TinyFusionOps1(attr, attrName, [op]() {
-    return op->emitOpError();
-  });
-}
-
-static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps2(
-    ::mlir::Attribute attr, ::llvm::StringRef attrName, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
   if (attr && !(((::llvm::isa<::mlir::FloatAttr>(attr))) && ((::llvm::cast<::mlir::FloatAttr>(attr).getType().isF32()))))
     return emitError() << "attribute '" << attrName
         << "' failed to satisfy constraint: 32-bit float attribute";
   return ::mlir::success();
 }
-static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps2(
+static ::mlir::LogicalResult __mlir_ods_local_attr_constraint_TinyFusionOps1(
     ::mlir::Operation *op, ::mlir::Attribute attr, ::llvm::StringRef attrName) {
-  return __mlir_ods_local_attr_constraint_TinyFusionOps2(attr, attrName, [op]() {
+  return __mlir_ods_local_attr_constraint_TinyFusionOps1(attr, attrName, [op]() {
     return op->emitOpError();
   });
 }
@@ -92,11 +78,6 @@ Conv2dLReluOpGenericAdaptorBase::Conv2dLReluOpGenericAdaptorBase(::mlir::Diction
 }
 
 Conv2dLReluOpGenericAdaptorBase::Conv2dLReluOpGenericAdaptorBase(Conv2dLReluOp op) : Conv2dLReluOpGenericAdaptorBase(op->getDiscardableAttrDictionary(), op.getProperties(), op->getRegions()) {}
-
-::mlir::ElementsAttr Conv2dLReluOpGenericAdaptorBase::getNegSlop() {
-  auto attr = getNegSlopAttr();
-  return attr;
-}
 
 ::mlir::ArrayAttr Conv2dLReluOpGenericAdaptorBase::getDilation() {
   auto attr = getDilationAttr();
@@ -119,15 +100,10 @@ Conv2dLReluOpAdaptor::Conv2dLReluOpAdaptor(Conv2dLReluOp op) : Conv2dLReluOpGene
 ::mlir::LogicalResult Conv2dLReluOpAdaptor::verify(::mlir::Location loc) {
   auto tblgen_dilation = getProperties().dilation; (void)tblgen_dilation;
   if (!tblgen_dilation) return emitError(loc, "'TinyFusion.conv2d_lrelu' op ""requires attribute 'dilation'");
-  auto tblgen_neg_slop = getProperties().neg_slop; (void)tblgen_neg_slop;
-  if (!tblgen_neg_slop) return emitError(loc, "'TinyFusion.conv2d_lrelu' op ""requires attribute 'neg_slop'");
   auto tblgen_padding = getProperties().padding; (void)tblgen_padding;
   if (!tblgen_padding) return emitError(loc, "'TinyFusion.conv2d_lrelu' op ""requires attribute 'padding'");
   auto tblgen_stride = getProperties().stride; (void)tblgen_stride;
   if (!tblgen_stride) return emitError(loc, "'TinyFusion.conv2d_lrelu' op ""requires attribute 'stride'");
-
-  if (tblgen_neg_slop && !((::llvm::isa<::mlir::ElementsAttr>(tblgen_neg_slop))))
-    return emitError(loc, "'TinyFusion.conv2d_lrelu' op ""attribute 'neg_slop' failed to satisfy constraint: constant vector/tensor attribute");
 
   if (tblgen_dilation && !((::llvm::isa<::mlir::ArrayAttr>(tblgen_dilation))))
     return emitError(loc, "'TinyFusion.conv2d_lrelu' op ""attribute 'dilation' failed to satisfy constraint: array attribute");
@@ -161,25 +137,6 @@ Conv2dLReluOpAdaptor::Conv2dLReluOpAdaptor(Conv2dLReluOp op) : Conv2dLReluOpGene
         propStorage = convertedAttr;
       } else {
         emitError() << "Invalid attribute `dilation` in property conversion: " << attr;
-        return ::mlir::failure();
-      }
-    }
-  }
-
-  {
-    auto &propStorage = prop.neg_slop;
-       auto attr = dict.get("neg_slop");
-    if (attr || /*isRequired=*/true) {
-      if (!attr) {
-        emitError() << "expected key entry for neg_slop in DictionaryAttr to set "
-                   "Properties.";
-        return ::mlir::failure();
-      }
-      auto convertedAttr = ::llvm::dyn_cast<std::remove_reference_t<decltype(propStorage)>>(attr);
-      if (convertedAttr) {
-        propStorage = convertedAttr;
-      } else {
-        emitError() << "Invalid attribute `neg_slop` in property conversion: " << attr;
         return ::mlir::failure();
       }
     }
@@ -237,13 +194,6 @@ Conv2dLReluOpAdaptor::Conv2dLReluOpAdaptor(Conv2dLReluOp op) : Conv2dLReluOpGene
     }
 
     {
-      const auto &propStorage = prop.neg_slop;
-      if (propStorage)
-        attrs.push_back(odsBuilder.getNamedAttr("neg_slop",
-                                       propStorage));
-    }
-
-    {
       const auto &propStorage = prop.padding;
       if (propStorage)
         attrs.push_back(odsBuilder.getNamedAttr("padding",
@@ -265,7 +215,6 @@ Conv2dLReluOpAdaptor::Conv2dLReluOpAdaptor(Conv2dLReluOp op) : Conv2dLReluOpGene
 llvm::hash_code Conv2dLReluOp::computePropertiesHash(const Properties &prop) {
   return llvm::hash_combine(
     llvm::hash_value(prop.dilation.getAsOpaquePointer()), 
-    llvm::hash_value(prop.neg_slop.getAsOpaquePointer()), 
     llvm::hash_value(prop.padding.getAsOpaquePointer()), 
     llvm::hash_value(prop.stride.getAsOpaquePointer()));
 }
@@ -273,9 +222,6 @@ llvm::hash_code Conv2dLReluOp::computePropertiesHash(const Properties &prop) {
 std::optional<mlir::Attribute> Conv2dLReluOp::getInherentAttr(::mlir::MLIRContext *ctx, const Properties &prop, llvm::StringRef name) {
     if (name == "dilation")
       return prop.dilation;
-
-    if (name == "neg_slop")
-      return prop.neg_slop;
 
     if (name == "padding")
       return prop.padding;
@@ -288,11 +234,6 @@ std::optional<mlir::Attribute> Conv2dLReluOp::getInherentAttr(::mlir::MLIRContex
 void Conv2dLReluOp::setInherentAttr(Properties &prop, llvm::StringRef name, mlir::Attribute value) {
     if (name == "dilation") {
        prop.dilation = ::llvm::dyn_cast_or_null<std::remove_reference_t<decltype(prop.dilation)>>(value);
-       return;
-    }
-
-    if (name == "neg_slop") {
-       prop.neg_slop = ::llvm::dyn_cast_or_null<std::remove_reference_t<decltype(prop.neg_slop)>>(value);
        return;
     }
 
@@ -310,8 +251,6 @@ void Conv2dLReluOp::setInherentAttr(Properties &prop, llvm::StringRef name, mlir
 void Conv2dLReluOp::populateInherentAttrs(::mlir::MLIRContext *ctx, const Properties &prop, ::mlir::NamedAttrList &attrs) {
     if (prop.dilation) attrs.append("dilation", prop.dilation);
 
-    if (prop.neg_slop) attrs.append("neg_slop", prop.neg_slop);
-
     if (prop.padding) attrs.append("padding", prop.padding);
 
     if (prop.stride) attrs.append("stride", prop.stride);
@@ -320,25 +259,19 @@ void Conv2dLReluOp::populateInherentAttrs(::mlir::MLIRContext *ctx, const Proper
 ::mlir::LogicalResult Conv2dLReluOp::verifyInherentAttrs(::mlir::OperationName opName, ::mlir::NamedAttrList &attrs, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
     {
       ::mlir::Attribute attr = attrs.get(getDilationAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "dilation", emitError)))
-        return ::mlir::failure();
-    }
-
-    {
-      ::mlir::Attribute attr = attrs.get(getNegSlopAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "neg_slop", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "dilation", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getPaddingAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "padding", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "padding", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getStrideAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "stride", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "stride", emitError)))
         return ::mlir::failure();
     }
     return ::mlir::success();
@@ -347,9 +280,6 @@ void Conv2dLReluOp::populateInherentAttrs(::mlir::MLIRContext *ctx, const Proper
 ::mlir::LogicalResult Conv2dLReluOp::readProperties(::mlir::DialectBytecodeReader &reader, ::mlir::OperationState &state) {
   auto &prop = state.getOrAddProperties<Properties>(); (void)prop;
   if (::mlir::failed(reader.readAttribute(prop.dilation)))
-    return ::mlir::failure();
-
-  if (::mlir::failed(reader.readAttribute(prop.neg_slop)))
     return ::mlir::failure();
 
   if (::mlir::failed(reader.readAttribute(prop.padding)))
@@ -363,14 +293,8 @@ void Conv2dLReluOp::populateInherentAttrs(::mlir::MLIRContext *ctx, const Proper
 void Conv2dLReluOp::writeProperties(::mlir::DialectBytecodeWriter &writer) {
   auto &prop = getProperties(); (void)prop;
   writer.writeAttribute(prop.dilation);
-  writer.writeAttribute(prop.neg_slop);
   writer.writeAttribute(prop.padding);
   writer.writeAttribute(prop.stride);
-}
-
-::mlir::ElementsAttr Conv2dLReluOp::getNegSlop() {
-  auto attr = getNegSlopAttr();
-  return attr;
 }
 
 ::mlir::ArrayAttr Conv2dLReluOp::getDilation() {
@@ -388,22 +312,22 @@ void Conv2dLReluOp::writeProperties(::mlir::DialectBytecodeWriter &writer) {
   return attr;
 }
 
-void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::ElementsAttr neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
+void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
   odsState.addOperands(input_tensor);
   odsState.addOperands(weight_tensor);
   odsState.addOperands(bias_tensor);
-  odsState.getOrAddProperties<Properties>().neg_slop = neg_slop;
+  odsState.addOperands(neg_slop);
   odsState.getOrAddProperties<Properties>().dilation = dilation;
   odsState.getOrAddProperties<Properties>().padding = padding;
   odsState.getOrAddProperties<Properties>().stride = stride;
   odsState.addTypes(result);
 }
 
-void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::ElementsAttr neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
+void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
   odsState.addOperands(input_tensor);
   odsState.addOperands(weight_tensor);
   odsState.addOperands(bias_tensor);
-  odsState.getOrAddProperties<Properties>().neg_slop = neg_slop;
+  odsState.addOperands(neg_slop);
   odsState.getOrAddProperties<Properties>().dilation = dilation;
   odsState.getOrAddProperties<Properties>().padding = padding;
   odsState.getOrAddProperties<Properties>().stride = stride;
@@ -412,7 +336,7 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState 
 }
 
 void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::ValueRange operands, ::llvm::ArrayRef<::mlir::NamedAttribute> attributes) {
-  assert(operands.size() == 3u && "mismatched number of parameters");
+  assert(operands.size() == 4u && "mismatched number of parameters");
   odsState.addOperands(operands);
   odsState.addAttributes(attributes);
   assert(resultTypes.size() == 1u && "mismatched number of return types");
@@ -422,23 +346,18 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
 ::mlir::LogicalResult Conv2dLReluOp::verifyInvariantsImpl() {
   auto tblgen_dilation = getProperties().dilation; (void)tblgen_dilation;
   if (!tblgen_dilation) return emitOpError("requires attribute 'dilation'");
-  auto tblgen_neg_slop = getProperties().neg_slop; (void)tblgen_neg_slop;
-  if (!tblgen_neg_slop) return emitOpError("requires attribute 'neg_slop'");
   auto tblgen_padding = getProperties().padding; (void)tblgen_padding;
   if (!tblgen_padding) return emitOpError("requires attribute 'padding'");
   auto tblgen_stride = getProperties().stride; (void)tblgen_stride;
   if (!tblgen_stride) return emitOpError("requires attribute 'stride'");
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_neg_slop, "neg_slop")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_dilation, "dilation")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_dilation, "dilation")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_padding, "padding")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_padding, "padding")))
-    return ::mlir::failure();
-
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_stride, "stride")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_stride, "stride")))
     return ::mlir::failure();
   {
     unsigned index = 0; (void)index;
@@ -460,6 +379,12 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
       if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "operand", index++)))
         return ::mlir::failure();
     }
+    auto valueGroup3 = getODSOperands(3);
+
+    for (auto v : valueGroup3) {
+      if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "operand", index++)))
+        return ::mlir::failure();
+    }
   }
   {
     unsigned index = 0; (void)index;
@@ -475,6 +400,172 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
 
 ::mlir::LogicalResult Conv2dLReluOp::verifyInvariants() {
   return verifyInvariantsImpl();
+}
+
+::mlir::ParseResult Conv2dLReluOp::parse(::mlir::OpAsmParser &parser, ::mlir::OperationState &result) {
+  ::mlir::OpAsmParser::UnresolvedOperand input_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> input_tensorOperands(&input_tensorRawOperand, 1);  ::llvm::SMLoc input_tensorOperandsLoc;
+  (void)input_tensorOperandsLoc;
+  ::mlir::OpAsmParser::UnresolvedOperand weight_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> weight_tensorOperands(&weight_tensorRawOperand, 1);  ::llvm::SMLoc weight_tensorOperandsLoc;
+  (void)weight_tensorOperandsLoc;
+  ::mlir::OpAsmParser::UnresolvedOperand bias_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> bias_tensorOperands(&bias_tensorRawOperand, 1);  ::llvm::SMLoc bias_tensorOperandsLoc;
+  (void)bias_tensorOperandsLoc;
+  ::mlir::OpAsmParser::UnresolvedOperand neg_slopRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> neg_slopOperands(&neg_slopRawOperand, 1);  ::llvm::SMLoc neg_slopOperandsLoc;
+  (void)neg_slopOperandsLoc;
+  ::mlir::Type input_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> input_tensorTypes(&input_tensorRawType, 1);
+  ::mlir::Type weight_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> weight_tensorTypes(&weight_tensorRawType, 1);
+  ::mlir::Type bias_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> bias_tensorTypes(&bias_tensorRawType, 1);
+  ::mlir::Type neg_slopRawType{};
+  ::llvm::ArrayRef<::mlir::Type> neg_slopTypes(&neg_slopRawType, 1);
+  ::llvm::SmallVector<::mlir::Type, 1> allResultTypes;
+
+  input_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(input_tensorRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  weight_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(weight_tensorRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  bias_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(bias_tensorRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  neg_slopOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(neg_slopRawOperand))
+    return ::mlir::failure();
+  {
+    auto loc = parser.getCurrentLocation();(void)loc;
+    if (parser.parseOptionalAttrDict(result.attributes))
+      return ::mlir::failure();
+    if (failed(verifyInherentAttrs(result.name, result.attributes, [&]() {
+        return parser.emitError(loc) << "'" << result.name.getStringRef() << "' op ";
+      })))
+      return ::mlir::failure();
+  }
+  if (parser.parseColon())
+    return ::mlir::failure();
+  if (parser.parseLParen())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    input_tensorRawType = type;
+  }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    weight_tensorRawType = type;
+  }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    bias_tensorRawType = type;
+  }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    neg_slopRawType = type;
+  }
+  if (parser.parseRParen())
+    return ::mlir::failure();
+  if (parser.parseArrow())
+    return ::mlir::failure();
+
+  if (parser.parseTypeList(allResultTypes))
+    return ::mlir::failure();
+  result.addTypes(allResultTypes);
+  if (parser.resolveOperands(input_tensorOperands, input_tensorTypes, input_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  if (parser.resolveOperands(weight_tensorOperands, weight_tensorTypes, weight_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  if (parser.resolveOperands(bias_tensorOperands, bias_tensorTypes, bias_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  if (parser.resolveOperands(neg_slopOperands, neg_slopTypes, neg_slopOperandsLoc, result.operands))
+    return ::mlir::failure();
+  return ::mlir::success();
+}
+
+void Conv2dLReluOp::print(::mlir::OpAsmPrinter &_odsPrinter) {
+  _odsPrinter << ' ';
+  _odsPrinter << getInputTensor();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << getWeightTensor();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << getBiasTensor();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << getNegSlop();
+  ::llvm::SmallVector<::llvm::StringRef, 2> elidedAttrs;
+  _odsPrinter.printOptionalAttrDict((*this)->getAttrs(), elidedAttrs);
+  _odsPrinter << ' ' << ":";
+  _odsPrinter << ' ' << "(";
+  {
+    auto type = getInputTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  {
+    auto type = getWeightTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  {
+    auto type = getBiasTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  {
+    auto type = getNegSlop().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ")";
+  _odsPrinter << ' ' << "->";
+  _odsPrinter << ' ';
+  _odsPrinter << getOperation()->getResultTypes();
 }
 
 void Conv2dLReluOp::getEffects(::llvm::SmallVectorImpl<::mlir::SideEffects::EffectInstance<::mlir::MemoryEffects::Effect>> &effects) {
@@ -814,31 +905,31 @@ void Conv2dReluOp::populateInherentAttrs(::mlir::MLIRContext *ctx, const Propert
 ::mlir::LogicalResult Conv2dReluOp::verifyInherentAttrs(::mlir::OperationName opName, ::mlir::NamedAttrList &attrs, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
     {
       ::mlir::Attribute attr = attrs.get(getDilationAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "dilation", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "dilation", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getMaxFpAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps2(attr, "max_fp", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "max_fp", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getMinFpAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps2(attr, "min_fp", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "min_fp", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getPaddingAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "padding", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "padding", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getStrideAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "stride", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "stride", emitError)))
         return ::mlir::failure();
     }
     return ::mlir::success();
@@ -979,19 +1070,19 @@ void Conv2dReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, 
   auto tblgen_stride = getProperties().stride; (void)tblgen_stride;
   if (!tblgen_stride) return emitOpError("requires attribute 'stride'");
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_dilation, "dilation")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_dilation, "dilation")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_padding, "padding")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_padding, "padding")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_stride, "stride")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_stride, "stride")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps2(*this, tblgen_max_fp, "max_fp")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_max_fp, "max_fp")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps2(*this, tblgen_min_fp, "min_fp")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_min_fp, "min_fp")))
     return ::mlir::failure();
   {
     unsigned index = 0; (void)index;
@@ -1236,19 +1327,19 @@ void Conv2dSiluOp::populateInherentAttrs(::mlir::MLIRContext *ctx, const Propert
 ::mlir::LogicalResult Conv2dSiluOp::verifyInherentAttrs(::mlir::OperationName opName, ::mlir::NamedAttrList &attrs, llvm::function_ref<::mlir::InFlightDiagnostic()> emitError) {
     {
       ::mlir::Attribute attr = attrs.get(getDilationAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "dilation", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "dilation", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getPaddingAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "padding", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "padding", emitError)))
         return ::mlir::failure();
     }
 
     {
       ::mlir::Attribute attr = attrs.get(getStrideAttrName(opName));
-      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(attr, "stride", emitError)))
+      if (attr && ::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(attr, "stride", emitError)))
         return ::mlir::failure();
     }
     return ::mlir::success();
@@ -1326,13 +1417,13 @@ void Conv2dSiluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, 
   auto tblgen_stride = getProperties().stride; (void)tblgen_stride;
   if (!tblgen_stride) return emitOpError("requires attribute 'stride'");
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_dilation, "dilation")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_dilation, "dilation")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_padding, "padding")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_padding, "padding")))
     return ::mlir::failure();
 
-  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps1(*this, tblgen_stride, "stride")))
+  if (::mlir::failed(__mlir_ods_local_attr_constraint_TinyFusionOps0(*this, tblgen_stride, "stride")))
     return ::mlir::failure();
   {
     unsigned index = 0; (void)index;

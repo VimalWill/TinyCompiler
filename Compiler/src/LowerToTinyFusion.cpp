@@ -92,8 +92,7 @@ public:
     auto addOp = dyn_cast_or_null<tosa::AddOp>(mulOp->getNextNode()); 
     if(!addOp) return failure(); 
 
-    auto constOp = mulOp.getOperand(1).getDefiningOp<tosa::ConstOp>(); 
-    auto negSlop = constOp.getValue(); 
+    auto NegSlope = mulOp.getOperand(1); 
 
     auto Input = convOp.getOperand(0); 
     auto Weight = convOp.getOperand(1); 
@@ -104,10 +103,11 @@ public:
     auto stride = rewriter.getI64ArrayAttr(convOp.getStride()); 
 
     auto fuseOp = rewriter.create<TinyFusion::Conv2dLReluOp>(
-      convOp.getLoc(), convOp.getType(), Input, Weight, Bias, negSlop, dilation, 
+      convOp.getLoc(), convOp.getType(), Input, Weight, Bias, NegSlope, dilation, 
       padding, stride); 
     
     rewriter.replaceOp(convOp, fuseOp.getResult());
+    //TODO: replace mul and add with fuseop and reshape
 
     // rewriter.eraseOp(reshapeOpAfterConv); 
     // rewriter.eraseOp(convOp); 
@@ -115,6 +115,7 @@ public:
     // rewriter.eraseOp(minOp); 
     // rewriter.eraseOp(addOp); 
     // rewriter.eraseOp(mulOp); 
+    // rewriter.eraseOp(constOp); 
 
     return success();
   }

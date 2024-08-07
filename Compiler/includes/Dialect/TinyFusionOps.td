@@ -74,15 +74,23 @@ def Conv2dLReluOp : Tiny_Fusion_Op<"conv2d_lrelu", [Pure]> {
         TensorOf<[F32]>:$input_tensor, 
         TensorOf<[F32]>:$weight_tensor,
         TensorOf<[F32]>:$bias_tensor, 
-        ElementsAttr:$neg_slop,
+        TensorOf<[F32]>:$neg_slop,
         ArrayAttr:$dilation, 
         ArrayAttr:$padding, 
         ArrayAttr:$stride
     ); 
 
+
     let results = (outs TensorOf<[F32]>:$result); 
     let builders = [
         OpBuilder<(ins "Value":$input_tensor, "Value":$weight_tensor, "Value":$bias_tensor, "Value":$neg_slope, "ArrayAttr":$dilation, "ArrayAttr":$padding, "ArrayAttr":$stride)>
     ]; 
+
+    let assemblyFormat = [{
+        $input_tensor `,` 
+        $weight_tensor `,`
+        $bias_tensor `,`
+        $neg_slop attr-dict `:` `(` type($input_tensor) `,` type($weight_tensor) `,` type($bias_tensor) `,` type($neg_slop) `)` `->` type(results)
+    }];
 }
 #endif // _COMPILER_INCLUDES_DIALECT_TINYFUSIONOPS_TD_
