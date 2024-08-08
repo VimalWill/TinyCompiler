@@ -9,6 +9,7 @@ namespace mlir {
     namespace TinyFusion {
         // std::unique_ptr<mlir::Pass> createLowerToTinyFusionPass();  
         void registerLowerToTinyFusionPass(); 
+        void registerLowerToAffinePass(); 
     }
 }
 

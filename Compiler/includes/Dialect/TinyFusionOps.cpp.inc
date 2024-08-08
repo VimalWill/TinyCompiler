@@ -1168,6 +1168,144 @@ void Conv2dReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, 
   return verifyInvariantsImpl();
 }
 
+::mlir::ParseResult Conv2dReluOp::parse(::mlir::OpAsmParser &parser, ::mlir::OperationState &result) {
+  ::mlir::OpAsmParser::UnresolvedOperand input_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> input_tensorOperands(&input_tensorRawOperand, 1);  ::llvm::SMLoc input_tensorOperandsLoc;
+  (void)input_tensorOperandsLoc;
+  ::mlir::OpAsmParser::UnresolvedOperand weight_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> weight_tensorOperands(&weight_tensorRawOperand, 1);  ::llvm::SMLoc weight_tensorOperandsLoc;
+  (void)weight_tensorOperandsLoc;
+  ::llvm::SmallVector<::mlir::OpAsmParser::UnresolvedOperand, 4> bias_tensorOperands;
+  ::llvm::SMLoc bias_tensorOperandsLoc;
+  (void)bias_tensorOperandsLoc;
+  ::mlir::Type input_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> input_tensorTypes(&input_tensorRawType, 1);
+  ::mlir::Type weight_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> weight_tensorTypes(&weight_tensorRawType, 1);
+  ::llvm::SmallVector<::mlir::Type, 1> bias_tensorTypes;
+  ::llvm::SmallVector<::mlir::Type, 1> allResultTypes;
+
+  input_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(input_tensorRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  weight_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(weight_tensorRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    bias_tensorOperandsLoc = parser.getCurrentLocation();
+    ::mlir::OpAsmParser::UnresolvedOperand operand;
+    ::mlir::OptionalParseResult parseResult =
+                                    parser.parseOptionalOperand(operand);
+    if (parseResult.has_value()) {
+      if (failed(*parseResult))
+        return ::mlir::failure();
+      bias_tensorOperands.push_back(operand);
+    }
+  }
+  {
+    auto loc = parser.getCurrentLocation();(void)loc;
+    if (parser.parseOptionalAttrDict(result.attributes))
+      return ::mlir::failure();
+    if (failed(verifyInherentAttrs(result.name, result.attributes, [&]() {
+        return parser.emitError(loc) << "'" << result.name.getStringRef() << "' op ";
+      })))
+      return ::mlir::failure();
+  }
+  if (parser.parseColon())
+    return ::mlir::failure();
+  if (parser.parseLParen())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    input_tensorRawType = type;
+  }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    weight_tensorRawType = type;
+  }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::Type optionalType;
+    ::mlir::OptionalParseResult parseResult =
+                                    parser.parseOptionalType(optionalType);
+    if (parseResult.has_value()) {
+      if (failed(*parseResult))
+        return ::mlir::failure();
+      bias_tensorTypes.push_back(optionalType);
+    }
+  }
+  if (parser.parseRParen())
+    return ::mlir::failure();
+  if (parser.parseArrow())
+    return ::mlir::failure();
+
+  if (parser.parseTypeList(allResultTypes))
+    return ::mlir::failure();
+  result.addTypes(allResultTypes);
+  if (parser.resolveOperands(input_tensorOperands, input_tensorTypes, input_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  if (parser.resolveOperands(weight_tensorOperands, weight_tensorTypes, weight_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  if (parser.resolveOperands(bias_tensorOperands, bias_tensorTypes, bias_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  return ::mlir::success();
+}
+
+void Conv2dReluOp::print(::mlir::OpAsmPrinter &_odsPrinter) {
+  _odsPrinter << ' ';
+  _odsPrinter << getInputTensor();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << getWeightTensor();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  if (::mlir::Value value = getBiasTensor())
+    _odsPrinter << value;
+  ::llvm::SmallVector<::llvm::StringRef, 2> elidedAttrs;
+  _odsPrinter.printOptionalAttrDict((*this)->getAttrs(), elidedAttrs);
+  _odsPrinter << ' ' << ":";
+  _odsPrinter << ' ' << "(";
+  {
+    auto type = getInputTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  {
+    auto type = getWeightTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << (getBiasTensor() ? ::llvm::ArrayRef<::mlir::Type>(getBiasTensor().getType()) : ::llvm::ArrayRef<::mlir::Type>());
+  _odsPrinter << ")";
+  _odsPrinter << ' ' << "->";
+  _odsPrinter << ' ';
+  _odsPrinter << getOperation()->getResultTypes();
+}
+
 void Conv2dReluOp::getEffects(::llvm::SmallVectorImpl<::mlir::SideEffects::EffectInstance<::mlir::MemoryEffects::Effect>> &effects) {
 }
 
@@ -1502,6 +1640,138 @@ void Conv2dSiluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, 
 
 ::mlir::LogicalResult Conv2dSiluOp::verifyInvariants() {
   return verifyInvariantsImpl();
+}
+
+::mlir::ParseResult Conv2dSiluOp::parse(::mlir::OpAsmParser &parser, ::mlir::OperationState &result) {
+  ::mlir::OpAsmParser::UnresolvedOperand input_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> input_tensorOperands(&input_tensorRawOperand, 1);  ::llvm::SMLoc input_tensorOperandsLoc;
+  (void)input_tensorOperandsLoc;
+  ::mlir::OpAsmParser::UnresolvedOperand weight_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> weight_tensorOperands(&weight_tensorRawOperand, 1);  ::llvm::SMLoc weight_tensorOperandsLoc;
+  (void)weight_tensorOperandsLoc;
+  ::mlir::OpAsmParser::UnresolvedOperand bias_tensorRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> bias_tensorOperands(&bias_tensorRawOperand, 1);  ::llvm::SMLoc bias_tensorOperandsLoc;
+  (void)bias_tensorOperandsLoc;
+  ::mlir::Type input_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> input_tensorTypes(&input_tensorRawType, 1);
+  ::mlir::Type weight_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> weight_tensorTypes(&weight_tensorRawType, 1);
+  ::mlir::Type bias_tensorRawType{};
+  ::llvm::ArrayRef<::mlir::Type> bias_tensorTypes(&bias_tensorRawType, 1);
+  ::llvm::SmallVector<::mlir::Type, 1> allResultTypes;
+
+  input_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(input_tensorRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  weight_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(weight_tensorRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  bias_tensorOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(bias_tensorRawOperand))
+    return ::mlir::failure();
+  {
+    auto loc = parser.getCurrentLocation();(void)loc;
+    if (parser.parseOptionalAttrDict(result.attributes))
+      return ::mlir::failure();
+    if (failed(verifyInherentAttrs(result.name, result.attributes, [&]() {
+        return parser.emitError(loc) << "'" << result.name.getStringRef() << "' op ";
+      })))
+      return ::mlir::failure();
+  }
+  if (parser.parseColon())
+    return ::mlir::failure();
+  if (parser.parseLParen())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    input_tensorRawType = type;
+  }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    weight_tensorRawType = type;
+  }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    bias_tensorRawType = type;
+  }
+  if (parser.parseRParen())
+    return ::mlir::failure();
+  if (parser.parseArrow())
+    return ::mlir::failure();
+
+  if (parser.parseTypeList(allResultTypes))
+    return ::mlir::failure();
+  result.addTypes(allResultTypes);
+  if (parser.resolveOperands(input_tensorOperands, input_tensorTypes, input_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  if (parser.resolveOperands(weight_tensorOperands, weight_tensorTypes, weight_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  if (parser.resolveOperands(bias_tensorOperands, bias_tensorTypes, bias_tensorOperandsLoc, result.operands))
+    return ::mlir::failure();
+  return ::mlir::success();
+}
+
+void Conv2dSiluOp::print(::mlir::OpAsmPrinter &_odsPrinter) {
+  _odsPrinter << ' ';
+  _odsPrinter << getInputTensor();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << getWeightTensor();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << getBiasTensor();
+  ::llvm::SmallVector<::llvm::StringRef, 2> elidedAttrs;
+  _odsPrinter.printOptionalAttrDict((*this)->getAttrs(), elidedAttrs);
+  _odsPrinter << ' ' << ":";
+  _odsPrinter << ' ' << "(";
+  {
+    auto type = getInputTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  {
+    auto type = getWeightTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  {
+    auto type = getBiasTensor().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ")";
+  _odsPrinter << ' ' << "->";
+  _odsPrinter << ' ';
+  _odsPrinter << getOperation()->getResultTypes();
 }
 
 void Conv2dSiluOp::getEffects(::llvm::SmallVectorImpl<::mlir::SideEffects::EffectInstance<::mlir::MemoryEffects::Effect>> &effects) {

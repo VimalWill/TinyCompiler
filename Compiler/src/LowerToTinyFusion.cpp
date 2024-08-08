@@ -11,8 +11,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-#include <iostream>
-
 using namespace mlir;
 using namespace mlir::tosa;
 using namespace mlir::func;
