@@ -166,6 +166,10 @@ public:
     return (*getODSOperands(3).begin());
   }
 
+  ValueT getScaleConst() {
+    return (*getODSOperands(4).begin());
+  }
+
   RangeT getOperands() {
     return odsOperands;
   }
@@ -180,7 +184,7 @@ public:
 
   ::mlir::LogicalResult verify(::mlir::Location loc);
 };
-class Conv2dLReluOp : public ::mlir::Op<Conv2dLReluOp, ::mlir::OpTrait::ZeroRegions, ::mlir::OpTrait::OneResult, ::mlir::OpTrait::OneTypedResult<::mlir::TensorType>::Impl, ::mlir::OpTrait::ZeroSuccessors, ::mlir::OpTrait::NOperands<4>::Impl, ::mlir::OpTrait::OpInvariants, ::mlir::BytecodeOpInterface::Trait, ::mlir::ConditionallySpeculatable::Trait, ::mlir::OpTrait::AlwaysSpeculatableImplTrait, ::mlir::MemoryEffectOpInterface::Trait> {
+class Conv2dLReluOp : public ::mlir::Op<Conv2dLReluOp, ::mlir::OpTrait::ZeroRegions, ::mlir::OpTrait::OneResult, ::mlir::OpTrait::OneTypedResult<::mlir::TensorType>::Impl, ::mlir::OpTrait::ZeroSuccessors, ::mlir::OpTrait::NOperands<5>::Impl, ::mlir::OpTrait::OpInvariants, ::mlir::BytecodeOpInterface::Trait, ::mlir::ConditionallySpeculatable::Trait, ::mlir::OpTrait::AlwaysSpeculatableImplTrait, ::mlir::MemoryEffectOpInterface::Trait> {
 public:
   using Op::Op;
   using Op::print;
@@ -248,6 +252,10 @@ public:
     return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(3).begin());
   }
 
+  ::mlir::TypedValue<::mlir::TensorType> getScaleConst() {
+    return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(4).begin());
+  }
+
   ::mlir::OpOperand &getInputTensorMutable() {
     auto range = getODSOperandIndexAndLength(0);
     return getOperation()->getOpOperand(range.first);
@@ -265,6 +273,11 @@ public:
 
   ::mlir::OpOperand &getNegSlopMutable() {
     auto range = getODSOperandIndexAndLength(3);
+    return getOperation()->getOpOperand(range.first);
+  }
+
+  ::mlir::OpOperand &getScaleConstMutable() {
+    auto range = getODSOperandIndexAndLength(4);
     return getOperation()->getOpOperand(range.first);
   }
 
@@ -318,9 +331,9 @@ public:
     getProperties().stride = attr;
   }
 
-  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, Value input_tensor, Value weight_tensor, Value bias_tensor, Value neg_slope, ArrayAttr dilation, ArrayAttr padding, ArrayAttr stride);
-  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
-  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
+  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, Value input_tensor, Value weight_tensor, Value bias_tensor, Value neg_slope, Value scale_const, ArrayAttr dilation, ArrayAttr padding, ArrayAttr stride);
+  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::Value scale_const, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
+  static void build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::Value scale_const, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride);
   static void build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::ValueRange operands, ::llvm::ArrayRef<::mlir::NamedAttribute> attributes = {});
   ::mlir::LogicalResult verifyInvariantsImpl();
   ::mlir::LogicalResult verifyInvariants();

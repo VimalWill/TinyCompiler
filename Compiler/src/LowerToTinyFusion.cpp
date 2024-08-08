@@ -93,6 +93,7 @@ public:
     if(!addOp) return failure(); 
 
     auto NegSlope = mulOp.getOperand(1); 
+    auto ScaleConst = maxOp.getOperand(1); 
 
     auto Input = convOp.getOperand(0); 
     auto Weight = convOp.getOperand(1); 
@@ -103,19 +104,19 @@ public:
     auto stride = rewriter.getI64ArrayAttr(convOp.getStride()); 
 
     auto fuseOp = rewriter.create<TinyFusion::Conv2dLReluOp>(
-      convOp.getLoc(), convOp.getType(), Input, Weight, Bias, NegSlope, dilation, 
-      padding, stride); 
-    
-    rewriter.replaceOp(convOp, fuseOp.getResult());
-    //TODO: replace mul and add with fuseop and reshape
+      mulOp.getLoc(), convOp.getType(), Input, Weight, Bias, NegSlope, ScaleConst,
+      dilation, padding, stride); 
 
-    // rewriter.eraseOp(reshapeOpAfterConv); 
-    // rewriter.eraseOp(convOp); 
-    // rewriter.eraseOp(maxOp); 
-    // rewriter.eraseOp(minOp); 
-    // rewriter.eraseOp(addOp); 
-    // rewriter.eraseOp(mulOp); 
-    // rewriter.eraseOp(constOp); 
+    auto reshapeOp = rewriter.create<tosa::ReshapeOp>(
+        addOp.getLoc(), reshapeOpAfterConv.getResult().getType(),
+        fuseOp.getResult(),
+        rewriter.getDenseI64ArrayAttr(reshapeOpAfterConv.getResult()
+                                          .getType()
+                                          .cast<RankedTensorType>()
+                                          .getShape()));
+    
+    rewriter.replaceOp(mulOp, fuseOp.getResult());
+    rewriter.replaceOp(addOp, reshapeOp.getResult()); 
 
     return success();
   }

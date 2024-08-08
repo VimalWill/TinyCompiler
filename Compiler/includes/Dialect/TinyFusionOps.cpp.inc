@@ -312,22 +312,24 @@ void Conv2dLReluOp::writeProperties(::mlir::DialectBytecodeWriter &writer) {
   return attr;
 }
 
-void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
+void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::Type result, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::Value scale_const, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
   odsState.addOperands(input_tensor);
   odsState.addOperands(weight_tensor);
   odsState.addOperands(bias_tensor);
   odsState.addOperands(neg_slop);
+  odsState.addOperands(scale_const);
   odsState.getOrAddProperties<Properties>().dilation = dilation;
   odsState.getOrAddProperties<Properties>().padding = padding;
   odsState.getOrAddProperties<Properties>().stride = stride;
   odsState.addTypes(result);
 }
 
-void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
+void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::Value input_tensor, ::mlir::Value weight_tensor, ::mlir::Value bias_tensor, ::mlir::Value neg_slop, ::mlir::Value scale_const, ::mlir::ArrayAttr dilation, ::mlir::ArrayAttr padding, ::mlir::ArrayAttr stride) {
   odsState.addOperands(input_tensor);
   odsState.addOperands(weight_tensor);
   odsState.addOperands(bias_tensor);
   odsState.addOperands(neg_slop);
+  odsState.addOperands(scale_const);
   odsState.getOrAddProperties<Properties>().dilation = dilation;
   odsState.getOrAddProperties<Properties>().padding = padding;
   odsState.getOrAddProperties<Properties>().stride = stride;
@@ -336,7 +338,7 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState 
 }
 
 void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState, ::mlir::TypeRange resultTypes, ::mlir::ValueRange operands, ::llvm::ArrayRef<::mlir::NamedAttribute> attributes) {
-  assert(operands.size() == 4u && "mismatched number of parameters");
+  assert(operands.size() == 5u && "mismatched number of parameters");
   odsState.addOperands(operands);
   odsState.addAttributes(attributes);
   assert(resultTypes.size() == 1u && "mismatched number of return types");
@@ -385,6 +387,12 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
       if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "operand", index++)))
         return ::mlir::failure();
     }
+    auto valueGroup4 = getODSOperands(4);
+
+    for (auto v : valueGroup4) {
+      if (::mlir::failed(__mlir_ods_local_type_constraint_TinyFusionOps0(*this, v.getType(), "operand", index++)))
+        return ::mlir::failure();
+    }
   }
   {
     unsigned index = 0; (void)index;
@@ -415,6 +423,9 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
   ::mlir::OpAsmParser::UnresolvedOperand neg_slopRawOperand{};
   ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> neg_slopOperands(&neg_slopRawOperand, 1);  ::llvm::SMLoc neg_slopOperandsLoc;
   (void)neg_slopOperandsLoc;
+  ::mlir::OpAsmParser::UnresolvedOperand scale_constRawOperand{};
+  ::llvm::ArrayRef<::mlir::OpAsmParser::UnresolvedOperand> scale_constOperands(&scale_constRawOperand, 1);  ::llvm::SMLoc scale_constOperandsLoc;
+  (void)scale_constOperandsLoc;
   ::mlir::Type input_tensorRawType{};
   ::llvm::ArrayRef<::mlir::Type> input_tensorTypes(&input_tensorRawType, 1);
   ::mlir::Type weight_tensorRawType{};
@@ -423,6 +434,8 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
   ::llvm::ArrayRef<::mlir::Type> bias_tensorTypes(&bias_tensorRawType, 1);
   ::mlir::Type neg_slopRawType{};
   ::llvm::ArrayRef<::mlir::Type> neg_slopTypes(&neg_slopRawType, 1);
+  ::mlir::Type scale_constRawType{};
+  ::llvm::ArrayRef<::mlir::Type> scale_constTypes(&scale_constRawType, 1);
   ::llvm::SmallVector<::mlir::Type, 1> allResultTypes;
 
   input_tensorOperandsLoc = parser.getCurrentLocation();
@@ -445,6 +458,12 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
 
   neg_slopOperandsLoc = parser.getCurrentLocation();
   if (parser.parseOperand(neg_slopRawOperand))
+    return ::mlir::failure();
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  scale_constOperandsLoc = parser.getCurrentLocation();
+  if (parser.parseOperand(scale_constRawOperand))
     return ::mlir::failure();
   {
     auto loc = parser.getCurrentLocation();(void)loc;
@@ -493,6 +512,15 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
       return ::mlir::failure();
     neg_slopRawType = type;
   }
+  if (parser.parseComma())
+    return ::mlir::failure();
+
+  {
+    ::mlir::TensorType type;
+    if (parser.parseCustomTypeWithFallback(type))
+      return ::mlir::failure();
+    scale_constRawType = type;
+  }
   if (parser.parseRParen())
     return ::mlir::failure();
   if (parser.parseArrow())
@@ -509,6 +537,8 @@ void Conv2dLReluOp::build(::mlir::OpBuilder &, ::mlir::OperationState &odsState,
     return ::mlir::failure();
   if (parser.resolveOperands(neg_slopOperands, neg_slopTypes, neg_slopOperandsLoc, result.operands))
     return ::mlir::failure();
+  if (parser.resolveOperands(scale_constOperands, scale_constTypes, scale_constOperandsLoc, result.operands))
+    return ::mlir::failure();
   return ::mlir::success();
 }
 
@@ -524,6 +554,9 @@ void Conv2dLReluOp::print(::mlir::OpAsmPrinter &_odsPrinter) {
   _odsPrinter << ",";
   _odsPrinter << ' ';
   _odsPrinter << getNegSlop();
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  _odsPrinter << getScaleConst();
   ::llvm::SmallVector<::llvm::StringRef, 2> elidedAttrs;
   _odsPrinter.printOptionalAttrDict((*this)->getAttrs(), elidedAttrs);
   _odsPrinter << ' ' << ":";
@@ -557,6 +590,15 @@ void Conv2dLReluOp::print(::mlir::OpAsmPrinter &_odsPrinter) {
   _odsPrinter << ' ';
   {
     auto type = getNegSlop().getType();
+    if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
+      _odsPrinter.printStrippedAttrOrType(validType);
+   else
+     _odsPrinter << type;
+  }
+  _odsPrinter << ",";
+  _odsPrinter << ' ';
+  {
+    auto type = getScaleConst().getType();
     if (auto validType = ::llvm::dyn_cast<::mlir::TensorType>(type))
       _odsPrinter.printStrippedAttrOrType(validType);
    else
