@@ -17,6 +17,14 @@ using namespace mlir::func;
 using namespace mlir::affine;
 using namespace mlir::TinyFusion;
 
+
+namespace {
+
+//ref: https://www.lei.chat/posts/mlir-codegen-dialects-for-machine-learning-compilers/
+//TODO: lower tinyfusion to affine loops
+
+}
+
 namespace {
 
 struct LowerTinyFusionToAffine
@@ -30,8 +38,15 @@ public:
     return "lower TinyFusion to Affine dialect";
   }
 
+  void getDependentDialect(DialectRegistry &registry) const override {
+    registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
+                    func::FuncDialect, affine::AffineDialect>(); 
+  }
+
   void runOnOperation() override {
-    //TODO: logic for tinyfusion to affine
+    auto func = getOperation(); 
+    MLIRContext *context = &getContext(); 
+    RewritePatternSet patterns(context); 
   }
 };
 } // namespace
