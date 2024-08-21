@@ -21,8 +21,11 @@ using namespace mlir::TinyFusion;
 namespace {
 
 //ref: https://www.lei.chat/posts/mlir-codegen-dialects-for-machine-learning-compilers/
-//TODO: lower tinyfusion to affine loops
 
+class LowerConv2dReluToAffine : public OpRewritePattern<TinyFusion::Conv2dRelu> {
+public:
+    //ref: https://mlir.llvm.org/docs/Tutorials/Toy/Ch-5/
+}; 
 }
 
 namespace {
