@@ -12,8 +12,8 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 #include "llvm/ADT/Sequence.h"
@@ -41,23 +41,24 @@ namespace {
 //       : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
 
 //   LogicalResult matchAndRewrite(Operation *Op, ArrayRef<Value> Operands,
-//                                 ConversionPatternRewriter &rewriter) override {}
+//                                 ConversionPatternRewriter &rewriter) override
+//                                 {}
 // };
 
 struct ConstantOpLowering : public OpConversionPattern<tosa::ConstOp> {
-  ConstantOpLowering(mlir::MLIRContext* ctx) : OpConversionPattern(ctx) {}
-  using OpConversionPattern::OpConversionPattern; 
+  ConstantOpLowering(mlir::MLIRContext *ctx) : OpConversionPattern(ctx) {}
+  using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
   matchAndRewrite(tosa::ConstOp constOp, OpAdaptor adaptor,
-                 ConversionPatternRewriter& rewriter) const override {
-    
-    ImplicitLocOpBuilder b(constOp.getLoc(), rewriter); 
-    auto arithConstOp = b.create<arith::ConstantOp>(adaptor.getValue()); 
-    rewriter.replaceOp(constOp, arithConstOp); 
-    return success(); 
+                  ConversionPatternRewriter &rewriter) const override {
+
+    ImplicitLocOpBuilder b(constOp.getLoc(), rewriter);
+    auto arithConstOp = b.create<arith::ConstantOp>(adaptor.getValue());
+    rewriter.replaceOp(constOp, arithConstOp);
+    return success();
   }
-}; 
+};
 } // namespace
 
 namespace {
@@ -75,7 +76,8 @@ public:
 
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
-                    func::FuncDialect, affine::AffineDialect, arith::ArithDialect>();
+                    func::FuncDialect, affine::AffineDialect,
+                    arith::ArithDialect>();
   }
 
   void runOnOperation() override {
@@ -83,18 +85,17 @@ public:
     MLIRContext *context = &getContext();
     RewritePatternSet patterns(context);
 
-    patterns.add<ConstantOpLowering>(context); 
+    patterns.add<ConstantOpLowering>(context);
     ConversionTarget target(*context);
-    target.addIllegalOp<tosa::ConstOp>(); 
+    target.addIllegalOp<tosa::ConstOp>();
 
     if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
-      signalPassFailure(); 
+      signalPassFailure();
     }
-
   }
 };
 } // namespace
 
 void mlir::TinyFusion::registerLowerToAffinePass() {
-  PassRegistration<LowerTinyFusionToAffine>(); 
+  PassRegistration<LowerTinyFusionToAffine>();
 }
