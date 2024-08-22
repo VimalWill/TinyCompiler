@@ -67,43 +67,49 @@ public:
   }
 };
 
-
-
 class LowerToConv2dLRelu : public OpRewritePattern<tosa::Conv2DOp> {
 public:
   using OpRewritePattern<tosa::Conv2DOp>::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(tosa::Conv2DOp convOp, PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(tosa::Conv2DOp convOp,
+                                PatternRewriter &rewriter) const override {
 
-    auto reshapeOpAfterConv = dyn_cast_or_null<tosa::ReshapeOp>(convOp->getNextNode()); 
-    if(!reshapeOpAfterConv) return failure(); 
-    
-    auto maxOp = dyn_cast_or_null<tosa::MaximumOp>(reshapeOpAfterConv->getNextNode()); 
-    if(!maxOp) return failure(); 
+    auto reshapeOpAfterConv =
+        dyn_cast_or_null<tosa::ReshapeOp>(convOp->getNextNode());
+    if (!reshapeOpAfterConv)
+      return failure();
 
-    auto minOp = dyn_cast_or_null<tosa::MinimumOp>(maxOp->getNextNode()); 
-    if(!minOp) return failure(); 
+    auto maxOp =
+        dyn_cast_or_null<tosa::MaximumOp>(reshapeOpAfterConv->getNextNode());
+    if (!maxOp)
+      return failure();
 
-    auto mulOp = dyn_cast_or_null<tosa::MulOp>(minOp->getNextNode()); 
-    if(!mulOp) return failure(); 
+    auto minOp = dyn_cast_or_null<tosa::MinimumOp>(maxOp->getNextNode());
+    if (!minOp)
+      return failure();
 
-    auto addOp = dyn_cast_or_null<tosa::AddOp>(mulOp->getNextNode()); 
-    if(!addOp) return failure(); 
+    auto mulOp = dyn_cast_or_null<tosa::MulOp>(minOp->getNextNode());
+    if (!mulOp)
+      return failure();
 
-    auto NegSlope = mulOp.getOperand(1); 
-    auto ScaleConst = maxOp.getOperand(1); 
+    auto addOp = dyn_cast_or_null<tosa::AddOp>(mulOp->getNextNode());
+    if (!addOp)
+      return failure();
 
-    auto Input = convOp.getOperand(0); 
-    auto Weight = convOp.getOperand(1); 
-    auto Bias = convOp.getOperand(2); 
+    auto NegSlope = mulOp.getOperand(1);
+    auto ScaleConst = maxOp.getOperand(1);
 
-    auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation()); 
-    auto padding = rewriter.getI64ArrayAttr(convOp.getPad()); 
-    auto stride = rewriter.getI64ArrayAttr(convOp.getStride()); 
+    auto Input = convOp.getOperand(0);
+    auto Weight = convOp.getOperand(1);
+    auto Bias = convOp.getOperand(2);
+
+    auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
+    auto padding = rewriter.getI64ArrayAttr(convOp.getPad());
+    auto stride = rewriter.getI64ArrayAttr(convOp.getStride());
 
     auto fuseOp = rewriter.create<TinyFusion::Conv2dLReluOp>(
-      mulOp.getLoc(), convOp.getType(), Input, Weight, Bias, NegSlope, ScaleConst,
-      dilation, padding, stride); 
+        mulOp.getLoc(), convOp.getType(), Input, Weight, Bias, NegSlope,
+        ScaleConst, dilation, padding, stride);
 
     auto reshapeOp = rewriter.create<tosa::ReshapeOp>(
         addOp.getLoc(), reshapeOpAfterConv.getResult().getType(),
@@ -112,9 +118,9 @@ public:
                                           .getType()
                                           .cast<RankedTensorType>()
                                           .getShape()));
-    
+
     rewriter.replaceOp(mulOp, fuseOp.getResult());
-    rewriter.replaceOp(addOp, reshapeOp.getResult()); 
+    rewriter.replaceOp(addOp, reshapeOp.getResult());
 
     return success();
   }
@@ -194,7 +200,7 @@ public:
 
     patterns.add<LowerToConv2dRelu>(context);
     patterns.add<LowerToConv2dSilu>(context);
-    patterns.add<LowerToConv2dLRelu>(context); 
+    patterns.add<LowerToConv2dLRelu>(context);
 
     ConversionTarget target(*context);
     target.addLegalDialect<TinyFusionDialect>();
