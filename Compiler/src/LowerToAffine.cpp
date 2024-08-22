@@ -5,12 +5,15 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 
+#include "Dialect/Passes.h"
+#include "Dialect/TinyFusionDialect.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 #include "llvm/ADT/Sequence.h"
@@ -25,34 +28,36 @@ using namespace mlir::TinyFusion;
 
 namespace {
 
-__attribute__((__always_inline__)) static MemRefType
-convertTensorToMemref(auto rankedTenorType) {
-  return MemRefType::get(rankedTensorType.getShape(),
-                         rankedTensorType.getElementType());
-}
+// __attribute__((__always_inline__)) static MemRefType
+// convertTensorToMemref(auto rankedTenorType) {
+//   return MemRefType::get(rankedTensorType.getShape(),
+//                          rankedTensorType.getElementType());
+// }
 
 // ref:
 // https://blog.weghos.com/llvm/llvm/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp.html
-struct Conv2dReluOpLowering : public mlir::ConversionPattern {
-  Conv2dReluOpLowering(mlir::MLIRContext *ctx)
-      : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
+// struct Conv2dReluOpLowering : public mlir::ConversionPattern {
+//   Conv2dReluOpLowering(mlir::MLIRContext *ctx)
+//       : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
 
-  LogicalResult matchAndRewrite(Operation *Op, ArrayRef<Value> Operands,
-                                ConversionPatternRewriter &rewriter) override {}
-};
+//   LogicalResult matchAndRewrite(Operation *Op, ArrayRef<Value> Operands,
+//                                 ConversionPatternRewriter &rewriter) override {}
+// };
 
-struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
-public:
-  using OpRewritePattern<tosa::ConstantOp>::OpRewritePattern;
+struct ConstantOpLowering : public OpConversionPattern<tosa::ConstOp> {
+  ConstantOpLowering(mlir::MLIRContext* ctx) : OpConversionPattern(ctx) {}
+  using OpConversionPattern::OpConversionPattern; 
 
-  LogicalResult matchAndRewrite(tosa::ConstOp constOp,
-                                PatternRewriter &rewriter) const override {
-
-    auto Loc = constOp.getLoc();
-    auto tensorType = llvm::cast<RankedTensorType>(constOp.getType());
-    auto memRef = convertTensorToMemref(tensorType);
+  LogicalResult
+  matchAndRewrite(tosa::ConstOp constOp, OpAdaptor adaptor,
+                 ConversionPatternRewriter& rewriter) const override {
+    
+    ImplicitLocOpBuilder b(constOp.getLoc(), rewriter); 
+    auto arithConstOp = b.create<arith::ConstantOp>(adaptor.getValue()); 
+    rewriter.replaceOp(constOp, arithConstOp); 
+    return success(); 
   }
-}
+}; 
 } // namespace
 
 namespace {
@@ -68,15 +73,28 @@ public:
     return "lower TinyFusion to Affine dialect";
   }
 
-  void getDependentDialect(DialectRegistry &registry) const override {
+  void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
-                    func::FuncDialect, affine::AffineDialect>();
+                    func::FuncDialect, affine::AffineDialect, arith::ArithDialect>();
   }
 
   void runOnOperation() override {
     auto func = getOperation();
     MLIRContext *context = &getContext();
     RewritePatternSet patterns(context);
+
+    patterns.add<ConstantOpLowering>(context); 
+    ConversionTarget target(*context);
+    target.addIllegalOp<tosa::ConstOp>(); 
+
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
+      signalPassFailure(); 
+    }
+
   }
 };
 } // namespace
+
+void mlir::TinyFusion::registerLowerToAffinePass() {
+  PassRegistration<LowerTinyFusionToAffine>(); 
+}
