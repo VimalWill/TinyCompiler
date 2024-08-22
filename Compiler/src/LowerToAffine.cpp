@@ -1,8 +1,8 @@
 #include "Dialect/TinyFusionDialect.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 
 #include "mlir/IR/BuiltinAttributes.h"
@@ -18,44 +18,39 @@
 using namespace mlir;
 using namespace mlir::tosa;
 using namespace mlir::func;
-using namespace mlir::arith; 
-using namespace mlir::memref; 
+using namespace mlir::arith;
+using namespace mlir::memref;
 using namespace mlir::affine;
 using namespace mlir::TinyFusion;
 
 namespace {
 
-__attribute__((__always_inline__))
-static MemRefType convertTensorToMemref(auto rankedTenorType) {
-  return MemRefType::get(rankedTensorType.getShape(), rankedTensorType.getElementType()); 
+__attribute__((__always_inline__)) static MemRefType
+convertTensorToMemref(auto rankedTenorType) {
+  return MemRefType::get(rankedTensorType.getShape(),
+                         rankedTensorType.getElementType());
 }
 
-// ref: https://blog.weghos.com/llvm/llvm/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp.html
+// ref:
+// https://blog.weghos.com/llvm/llvm/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp.html
 struct Conv2dReluOpLowering : public mlir::ConversionPattern {
   Conv2dReluOpLowering(mlir::MLIRContext *ctx)
       : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
 
   LogicalResult matchAndRewrite(Operation *Op, ArrayRef<Value> Operands,
-                                ConversionPatternRewriter &rewriter) override { 
-    
-
-    
-  }
+                                ConversionPatternRewriter &rewriter) override {}
 };
 
 struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
 public:
-  using OpRewritePattern<tosa::ConstantOp>::OpRewritePattern; 
+  using OpRewritePattern<tosa::ConstantOp>::OpRewritePattern;
 
-  LogicalResult
-  matchAndRewrite(tosa::ConstOp constOp, PatternRewriter& rewriter) const override {
+  LogicalResult matchAndRewrite(tosa::ConstOp constOp,
+                                PatternRewriter &rewriter) const override {
 
-    auto Loc = constOp.getLoc(); 
-    auto tensorType = llvm::cast<RankedTensorType>(constOp.getType()); 
-    auto memRef = convertTensorToMemref(tensorType); 
-
-
-
+    auto Loc = constOp.getLoc();
+    auto tensorType = llvm::cast<RankedTensorType>(constOp.getType());
+    auto memRef = convertTensorToMemref(tensorType);
   }
 }
 } // namespace
