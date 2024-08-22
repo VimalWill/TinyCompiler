@@ -30,7 +30,7 @@ static MemRefType convertTensorToMemref(auto rankedTenorType) {
   return MemRefType::get(rankedTensorType.getShape(), rankedTensorType.getElementType()); 
 }
 
-// ref: https://mlir.llvm.org/docs/Tutorials/Toy/Ch-5/
+// ref: https://blog.weghos.com/llvm/llvm/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp.html
 struct Conv2dReluOpLowering : public mlir::ConversionPattern {
   Conv2dReluOpLowering(mlir::MLIRContext *ctx)
       : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
@@ -53,7 +53,7 @@ public:
     auto Loc = constOp.getLoc(); 
     auto tensorType = llvm::cast<RankedTensorType>(constOp.getType()); 
     auto memRef = convertTensorToMemref(tensorType); 
-    
+
 
 
   }
