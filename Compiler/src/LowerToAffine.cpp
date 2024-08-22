@@ -17,16 +17,21 @@ using namespace mlir::func;
 using namespace mlir::affine;
 using namespace mlir::TinyFusion;
 
-
 namespace {
 
-//ref: https://www.lei.chat/posts/mlir-codegen-dialects-for-machine-learning-compilers/
+// ref:
+// https://www.lei.chat/posts/mlir-codegen-dialects-for-machine-learning-compilers/
 
-class LowerConv2dReluToAffine : public OpRewritePattern<TinyFusion::Conv2dRelu> {
-public:
-    //ref: https://mlir.llvm.org/docs/Tutorials/Toy/Ch-5/
-}; 
-}
+// dialect lowering from TinyFusion.conv2d_relu to affine.for
+// ref: https://mlir.llvm.org/docs/Tutorials/Toy/Ch-5/
+struct Conv2dReluOpLowering : public mlir::ConversionPattern {
+  Conv2dReluOpLowering(mlir::MLIRContext *ctx)
+      : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult matchAndRewrite(Operation *Op, ArrayRef<Value> Operands,
+                                ConversionPatternRewriter &rewriter) override { /*todo: affine logic*/ }
+};
+} // namespace
 
 namespace {
 
@@ -43,13 +48,13 @@ public:
 
   void getDependentDialect(DialectRegistry &registry) const override {
     registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
-                    func::FuncDialect, affine::AffineDialect>(); 
+                    func::FuncDialect, affine::AffineDialect>();
   }
 
   void runOnOperation() override {
-    auto func = getOperation(); 
-    MLIRContext *context = &getContext(); 
-    RewritePatternSet patterns(context); 
+    auto func = getOperation();
+    MLIRContext *context = &getContext();
+    RewritePatternSet patterns(context);
   }
 };
 } // namespace
