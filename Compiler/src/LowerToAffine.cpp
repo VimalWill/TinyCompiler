@@ -1,5 +1,7 @@
 #include "Dialect/TinyFusionDialect.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 
@@ -11,26 +13,51 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
+#include "llvm/ADT/Sequence.h"
+
 using namespace mlir;
 using namespace mlir::tosa;
 using namespace mlir::func;
+using namespace mlir::arith; 
+using namespace mlir::memref; 
 using namespace mlir::affine;
 using namespace mlir::TinyFusion;
 
 namespace {
 
-// ref:
-// https://www.lei.chat/posts/mlir-codegen-dialects-for-machine-learning-compilers/
+__attribute__((__always_inline__))
+static MemRefType convertTensorToMemref(auto rankedTenorType) {
+  return MemRefType::get(rankedTensorType.getShape(), rankedTensorType.getElementType()); 
+}
 
-// dialect lowering from TinyFusion.conv2d_relu to affine.for
 // ref: https://mlir.llvm.org/docs/Tutorials/Toy/Ch-5/
 struct Conv2dReluOpLowering : public mlir::ConversionPattern {
   Conv2dReluOpLowering(mlir::MLIRContext *ctx)
       : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
 
   LogicalResult matchAndRewrite(Operation *Op, ArrayRef<Value> Operands,
-                                ConversionPatternRewriter &rewriter) override { /*todo: affine logic*/ }
+                                ConversionPatternRewriter &rewriter) override { 
+    
+
+    
+  }
 };
+
+struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
+public:
+  using OpRewritePattern<tosa::ConstantOp>::OpRewritePattern; 
+
+  LogicalResult
+  matchAndRewrite(tosa::ConstOp constOp, PatternRewriter& rewriter) const override {
+
+    auto Loc = constOp.getLoc(); 
+    auto tensorType = llvm::cast<RankedTensorType>(constOp.getType()); 
+    auto memRef = convertTensorToMemref(tensorType); 
+    
+
+
+  }
+}
 } // namespace
 
 namespace {
