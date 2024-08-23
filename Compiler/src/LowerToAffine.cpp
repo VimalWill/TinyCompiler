@@ -45,20 +45,14 @@ namespace {
 //                                 {}
 // };
 
-struct ConstantOpLowering : public OpConversionPattern<tosa::ConstOp> {
-  ConstantOpLowering(mlir::MLIRContext *ctx) : OpConversionPattern(ctx) {}
-  using OpConversionPattern::OpConversionPattern;
+struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
+  using OpRewritePattern<tosa::ConstOp>::OpRewritePattern; 
 
   LogicalResult
-  matchAndRewrite(tosa::ConstOp constOp, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-
-    ImplicitLocOpBuilder b(constOp.getLoc(), rewriter);
-    auto arithConstOp = b.create<arith::ConstantOp>(adaptor.getValue());
-    rewriter.replaceOp(constOp, arithConstOp);
-    return success();
-  }
-};
+  matchAndRewriter(tosa::ConstOp constOp, PatternRewriter& rewriter) const override {
+    
+  }  
+}; 
 } // namespace
 
 namespace {
