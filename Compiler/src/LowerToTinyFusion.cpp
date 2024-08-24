@@ -11,6 +11,8 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
+#include <memory>
+
 using namespace mlir;
 using namespace mlir::tosa;
 using namespace mlir::func;
@@ -215,6 +217,6 @@ public:
 };
 } // namespace
 
-void mlir::TinyFusion::registerLowerToTinyFusionPass() {
-  PassRegistration<LowerTosaToTinyFusion>();
+std::unique_ptr<mlir::Pass> mlir::TinyFusion::registerLowerToTinyFusionPass() {
+  return std::make_unique<LowerTosaToTinyFusion>();
 }
