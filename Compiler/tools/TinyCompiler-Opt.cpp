@@ -24,6 +24,7 @@ using namespace mlir::TinyFusion;
 int main(int argc, char **argv) {
   mlir::registerAllPasses();
   mlir::TinyFusion::registerLowerToTinyFusionPass();
+  mlir::TinyFusion::registerLowerToAffinePass();
   mlir::DialectRegistry registry;
   registry.insert<mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect,
                   mlir::func::FuncDialect>();

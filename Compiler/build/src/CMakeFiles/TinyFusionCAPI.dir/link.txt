@@ -1,0 +1,2 @@
+/usr/bin/ar Dqc libTinyFusionCAPI.a CMakeFiles/obj.TinyFusionCAPI.dir/TinyFusionCApi.cpp.o
+/usr/bin/ranlib -D libTinyFusionCAPI.a
