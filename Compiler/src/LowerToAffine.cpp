@@ -28,20 +28,19 @@ using namespace mlir::TinyFusion;
 
 namespace {
 
-static
-MemRefType convertTensorToMemref(RankedTensorType tensorType) {
-  return MemRefType::get(tensorType.getShape(), tensorType.getElementType()); 
+static MemRefType convertTensorToMemref(RankedTensorType tensorType) {
+  return MemRefType::get(tensorType.getShape(), tensorType.getElementType());
 }
 
-static
-Value insertAllocAndDealloc(MemRefType memRef, Location Loc, PatternRewriter& rewriter) {
-  auto alloc = rewriter.create<memref::AllocOp>(Loc, memRef); 
-  auto *parentBlock = alloc->getBlock(); 
-  alloc->moveBefore(&parentBlock->front()); 
+static Value insertAllocAndDealloc(MemRefType memRef, Location Loc,
+                                   PatternRewriter &rewriter) {
+  auto alloc = rewriter.create<memref::AllocOp>(Loc, memRef);
+  auto *parentBlock = alloc->getBlock();
+  alloc->moveBefore(&parentBlock->front());
 
-  auto dealloc = rewriter.create<memref::DeallocOp>(Loc, alloc); 
-  dealloc->moveBefore(&parentBlock->back()); 
-  return alloc; 
+  auto dealloc = rewriter.create<memref::DeallocOp>(Loc, alloc);
+  dealloc->moveBefore(&parentBlock->back());
+  return alloc;
 }
 
 // ref:
@@ -75,18 +74,20 @@ struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
 };
 
 struct BufferiseConstantOp : public OpRewritePattern<arith::ConstantOp> {
-  using OpRewritePattern<arith::ConstantOp>::OpRewritePattern; 
+  using OpRewritePattern<arith::ConstantOp>::OpRewritePattern;
 
-  LogicalResult
-  matchAndRewrite(arith::ConstantOp constOp, PatternRewriter& rewriter) const override {
-    auto tensorType = llvm::cast<RankedTensorType>(constOp.getType()); 
-    auto memRef = convertTensorToMemref(tensorType); 
+  LogicalResult matchAndRewrite(arith::ConstantOp constOp,
+                                PatternRewriter &rewriter) const override {
+    auto tensorType = llvm::cast<RankedTensorType>(constOp.getType());
+    auto memRef = convertTensorToMemref(tensorType);
     auto alloc = insertAllocAndDealloc(memRef, constOp.getLoc(), rewriter);
 
-    rewriter.replaceOp(constOp, alloc); 
-    return success(); 
+    // todo: store memref with const data
+
+    rewriter.replaceOp(constOp, alloc);
+    return success();
   }
-}; 
+};
 } // namespace
 
 namespace {
@@ -114,7 +115,7 @@ public:
     RewritePatternSet patterns(context);
 
     patterns.add<ConstantOpLowering>(context);
-    patterns.add<BufferiseConstantOp>(context); 
+    patterns.add<BufferiseConstantOp>(context);
     ConversionTarget target(*context);
     target.addIllegalOp<tosa::ConstOp>();
 
