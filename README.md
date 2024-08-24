@@ -25,7 +25,7 @@ The compiler can be tested as follows,
 ```
 $ ./tools/TinyCompiler-Opt --compile ../../Test/Conv2dSilu.mlir 
 ```
-The pass-pipeline supports the limited fusion operation and converting tosa.constant to arith.constant
+> The pass-pipeline supports the limited fusion operation and converting tosa.constant to arith.constant
 
 ## In-progress 
 1. Lowering TinyFusion dialect to affine dialect 
