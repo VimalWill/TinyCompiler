@@ -28,11 +28,21 @@ using namespace mlir::TinyFusion;
 
 namespace {
 
-// __attribute__((__always_inline__)) static MemRefType
-// convertTensorToMemref(auto rankedTenorType) {
-//   return MemRefType::get(rankedTensorType.getShape(),
-//                          rankedTensorType.getElementType());
-// }
+static
+MemRefType convertTensorToMemref(RankedTensorType tensorType) {
+  return MemRefType::get(tensorType.getShape(), tensorType.getElementType()); 
+}
+
+static
+Value insertAllocAndDealloc(MemRefType memRef, Location Loc, PatternRewriter& rewriter) {
+  auto alloc = rewriter.create<memref::AllocOp>(Loc, memRef); 
+  auto *parentBlock = alloc->getBlock(); 
+  alloc->moveBefore(&parentBlock->front()); 
+
+  auto dealloc = rewriter.create<memref::DeallocOp>(Loc, alloc); 
+  dealloc->moveBefore(&parentBlock->back()); 
+  return alloc; 
+}
 
 // ref:
 // https://blog.weghos.com/llvm/llvm/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp.html
@@ -63,6 +73,20 @@ struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
     return success();
   }
 };
+
+struct BufferiseConstantOp : public OpRewritePattern<arith::ConstantOp> {
+  using OpRewritePattern<arith::ConstantOp>::OpRewritePattern; 
+
+  LogicalResult
+  matchAndRewrite(arith::ConstantOp constOp, PatternRewriter& rewriter) const override {
+    auto tensorType = llvm::cast<RankedTensorType>(constOp.getType()); 
+    auto memRef = convertTensorToMemref(tensorType); 
+    auto alloc = insertAllocAndDealloc(memRef, constOp.getLoc(), rewriter);
+
+    rewriter.replaceOp(constOp, alloc); 
+    return success(); 
+  }
+}; 
 } // namespace
 
 namespace {
@@ -81,7 +105,7 @@ public:
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
                     func::FuncDialect, affine::AffineDialect,
-                    arith::ArithDialect>();
+                    arith::ArithDialect, memref::MemRefDialect>();
   }
 
   void runOnOperation() override {
@@ -90,6 +114,7 @@ public:
     RewritePatternSet patterns(context);
 
     patterns.add<ConstantOpLowering>(context);
+    patterns.add<BufferiseConstantOp>(context); 
     ConversionTarget target(*context);
     target.addIllegalOp<tosa::ConstOp>();
 
