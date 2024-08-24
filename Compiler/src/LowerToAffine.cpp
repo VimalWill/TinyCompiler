@@ -47,6 +47,8 @@ namespace {
 
 struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
   using OpRewritePattern<tosa::ConstOp>::OpRewritePattern; 
+struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
+  using OpRewritePattern<tosa::ConstOp>::OpRewritePattern; 
 
   LogicalResult
   matchAndRewrite(tosa::ConstOp constOp, PatternRewriter& rewriter) const override {
