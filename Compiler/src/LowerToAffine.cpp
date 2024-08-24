@@ -46,25 +46,23 @@ namespace {
 // };
 
 struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
-  using OpRewritePattern<tosa::ConstOp>::OpRewritePattern; 
-struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
-  using OpRewritePattern<tosa::ConstOp>::OpRewritePattern; 
+  using OpRewritePattern<tosa::ConstOp>::OpRewritePattern;
 
-  LogicalResult
-  matchAndRewrite(tosa::ConstOp constOp, PatternRewriter& rewriter) const override {
+  LogicalResult matchAndRewrite(tosa::ConstOp constOp,
+                                PatternRewriter &rewriter) const override {
 
-    auto constantValue = constOp.getValue(); 
-    if(!constantValue) return failure(); 
+    auto constantValue = constOp.getValue();
+    if (!constantValue)
+      return failure();
 
     auto Loc = constOp.getLoc();
     auto arithConstantOp = rewriter.create<arith::ConstantOp>(
-      Loc, constOp.getType(), constantValue
-    ); 
+        Loc, constOp.getType(), constantValue);
 
-    rewriter.replaceOp(constOp, arithConstantOp.getResult()); 
-    return success(); 
+    rewriter.replaceOp(constOp, arithConstantOp.getResult());
+    return success();
   }
-}; 
+};
 } // namespace
 
 namespace {
