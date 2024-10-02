@@ -40,6 +40,23 @@ namespace {
 //                                 {}
 // };
 
+struct PadOpLowering : public OpRewritePattern<tosa::ReshapeOp> {
+  using OpRewritePattern<tosa::ReshapeOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(tosa::ReshapeOp reshapeOp,
+                                PatternRewriter &rewriter) const override {
+    auto op = reshapeOp->getNextNode();
+    if (!op)
+      return failure();
+
+    auto paddingAttr = op->getAttrOfType<ArrayAttr>("padding");
+    if (paddingAttr.getValue().empty())
+      return failure();
+    
+    return success(); 
+  }
+};
+
 struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
   using OpRewritePattern<tosa::ConstOp>::OpRewritePattern;
 
@@ -85,6 +102,7 @@ public:
     RewritePatternSet patterns(context);
 
     patterns.add<ConstantOpLowering>(context);
+    patterns.add<PadOpLowering>(context);
     ConversionTarget target(*context);
     target.addIllegalOp<tosa::ConstOp>();
 
