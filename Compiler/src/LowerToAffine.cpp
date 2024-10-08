@@ -53,6 +53,11 @@ struct PadOpLowering : public OpRewritePattern<tosa::ReshapeOp> {
     if (paddingAttr.getValue().empty())
       return failure();
     
+    SmallVector<uint64_t, 4> paddingValue; 
+    for(int itr = 0; itr < paddingAttr.size(); itr++) {
+      paddingValue.push_back(paddingAttr[itr]); 
+    }
+    
     return success(); 
   }
 };
