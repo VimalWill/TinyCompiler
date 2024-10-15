@@ -40,10 +40,20 @@ namespace {
 //                                 {}
 // };
 
+auto getAttrValue(mlir::ArrayAttr &attr, int attrSize) {
+  SmallVector<int64_t> attrValue;
+  attrValue.reserve(attrSize);
+  for (int itr = 0; itr < attrSize; itr++) {
+    attrValue.push_back(dyn_cast<IntegerAttr>(attr[itr]).getInt());
+  }
+
+  return attrValue;
+}
+
 void convertToAffineFor(tosa::ReshapeOp op) {
 
   auto tempOp = op->getNextNode();
-  if (!tempNode)
+  if (!tempOp)
     return;
 
   if (auto convOp = dyn_cast_or_null<TinyFusion::Conv2dReluOp>(tempOp)) {
@@ -52,16 +62,31 @@ void convertToAffineFor(tosa::ReshapeOp op) {
     auto filterType = convOp.getOperands()[1].getType().cast<ShapedType>();
     auto outputType = convOp.getResult().getType().cast<ShapedType>();
 
+    /*conv2d parameters*/
     const int kernelWidth = filterType.getShape()[1];
     const int kernelHeight = filterType.getShape()[2];
     assert(kernelHeight == kernelWidth);
 
     const int inputWidth = inputType.getShape()[3];
     const int inputHeight = inputType.getShape()[2];
-    const int outputWidth = outputType.getShape()[3]; 
-    const int outputHeight = outputType.getShape()[2]; 
+    const int outputWidth = outputType.getShape()[3];
+    const int outputHeight = outputType.getShape()[2];
 
-    /*todo: get dilation, stride and padding*/
+    auto padAttr = convOp.getPaddingAttr();
+    auto strideAttr = convOp.getStrideAttr();
+    auto dilationAttr = convOp.getDilationAttr();
+    assert((!padAttr.empty()) && (!strideAttr.empty()) &&
+           (!dilationAttr.empty()));
+
+    auto padValue = getAttrValue(padAttr, 4);
+    auto strideValue = getAttrValue(strideAttr, 2);
+    auto dilationValue = getAttrValue(dilationAttr, 2);
+
+    /*relu parameters*/
+    auto maxFp = convOp.getMaxFp();
+    auto minFp = convOp.getMinFp();
+
+    /*todo: construct affine nested for*/
   }
 }
 struct PadOpLowering : public OpRewritePattern<tosa::ReshapeOp> {
