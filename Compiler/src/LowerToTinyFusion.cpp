@@ -43,10 +43,10 @@ public:
     auto Weight = convOp.getOperand(1);
     auto Bias = convOp.getOperand(2);
 
-    auto Dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
     auto Padding = rewriter.getI64ArrayAttr(convOp.getPad());
     auto Stride = rewriter.getI64ArrayAttr(convOp.getStride());
-
+    auto Dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
+    
     auto fuseOp = rewriter.create<TinyFusion::Conv2dSiluOp>(
         sigmoidOp.getLoc(), convOp.getType(), Input, Weight, Bias, Dilation,
         Padding, Stride);
@@ -105,10 +105,10 @@ public:
     auto Weight = convOp.getOperand(1);
     auto Bias = convOp.getOperand(2);
 
-    auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
     auto padding = rewriter.getI64ArrayAttr(convOp.getPad());
     auto stride = rewriter.getI64ArrayAttr(convOp.getStride());
-
+    auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
+    
     auto fuseOp = rewriter.create<TinyFusion::Conv2dLReluOp>(
         mulOp.getLoc(), convOp.getType(), Input, Weight, Bias, NegSlope,
         ScaleConst, dilation, padding, stride);
@@ -154,10 +154,10 @@ public:
     auto filter = convOp.getOperand(1);
     auto bias = convOp.getOperand(2);
 
-    auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
     auto padding = rewriter.getI64ArrayAttr(convOp.getPad());
     auto stride = rewriter.getI64ArrayAttr(convOp.getStride());
-
+    auto dilation = rewriter.getI64ArrayAttr(convOp.getDilation());
+    
     auto max_fp = rewriter.getF32FloatAttr(clampOp.getMaxFp().convertToFloat());
     auto min_fp = rewriter.getF32FloatAttr(clampOp.getMinFp().convertToFloat());
 

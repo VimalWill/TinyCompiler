@@ -40,6 +40,30 @@ namespace {
 //                                 {}
 // };
 
+void convertToAffineFor(tosa::ReshapeOp op) {
+
+  auto tempOp = op->getNextNode();
+  if (!tempNode)
+    return;
+
+  if (auto convOp = dyn_cast_or_null<TinyFusion::Conv2dReluOp>(tempOp)) {
+
+    auto inputType = convOp.getOperands()[0].getType().cast<ShapedType>();
+    auto filterType = convOp.getOperands()[1].getType().cast<ShapedType>();
+    auto outputType = convOp.getResult().getType().cast<ShapedType>();
+
+    const int kernelWidth = filterType.getShape()[1];
+    const int kernelHeight = filterType.getShape()[2];
+    assert(kernelHeight == kernelWidth);
+
+    const int inputWidth = inputType.getShape()[3];
+    const int inputHeight = inputType.getShape()[2];
+    const int outputWidth = outputType.getShape()[3]; 
+    const int outputHeight = outputType.getShape()[2]; 
+
+    /*todo: get dilation, stride and padding*/
+  }
+}
 struct PadOpLowering : public OpRewritePattern<tosa::ReshapeOp> {
   using OpRewritePattern<tosa::ReshapeOp>::OpRewritePattern;
 
@@ -52,13 +76,29 @@ struct PadOpLowering : public OpRewritePattern<tosa::ReshapeOp> {
     auto paddingAttr = op->getAttrOfType<ArrayAttr>("padding");
     if (paddingAttr.getValue().empty())
       return failure();
-    
-    SmallVector<uint64_t, 4> paddingValue; 
-    for(int itr = 0; itr < paddingAttr.size(); itr++) {
-      paddingValue.push_back(paddingAttr[itr]); 
+
+    SmallVector<int64_t, 4> paddingValue;
+    for (int itr = 0; itr < 4; itr++) {
+      if (auto intAttr = dyn_cast<IntegerAttr>(paddingAttr[itr])) {
+        paddingValue.push_back(intAttr.getInt());
+      } else {
+        return failure();
+      }
     }
-    
-    return success(); 
+
+    auto paddingType =
+        RankedTensorType::get({4, 2}, rewriter.getIntegerType(64));
+    auto paddingDenseAttr =
+        DenseElementsAttr::get(paddingType, llvm::ArrayRef(paddingValue));
+    auto padConstOp = rewriter.create<arith::ConstantOp>(
+        op->getLoc(), paddingType, paddingDenseAttr);
+
+    auto padOp = rewriter.create<tosa::PadOp>(
+        op->getLoc(), op->getResult(0).getType(), op->getResult(0), padConstOp);
+
+    convertToAffineFor(reshapeOp);
+
+    return success();
   }
 };
 
