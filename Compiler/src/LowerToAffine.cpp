@@ -40,92 +40,12 @@ namespace {
 //                                 {}
 // };
 
-auto getAttrValue(mlir::ArrayAttr &attr, int attrSize) {
-  SmallVector<int64_t> attrValue;
-  attrValue.reserve(attrSize);
-  for (int itr = 0; itr < attrSize; itr++) {
-    attrValue.push_back(dyn_cast<IntegerAttr>(attr[itr]).getInt());
-  }
 
-  return attrValue;
+struct AffineOpLowering : public OpConversionPattern<TinyFusion::Conv2dReluOp> {
+  using OpConversionPattern<TinyFusion::Conv2dReluOp>::OpConversionPattern; 
+
+  //TODO: logic for affine transformation for conv2drelu
 }
-
-void convertToAffineFor(tosa::ReshapeOp op) {
-
-  auto tempOp = op->getNextNode();
-  if (!tempOp)
-    return;
-
-  if (auto convOp = dyn_cast_or_null<TinyFusion::Conv2dReluOp>(tempOp)) {
-
-    auto inputType = convOp.getOperands()[0].getType().cast<ShapedType>();
-    auto filterType = convOp.getOperands()[1].getType().cast<ShapedType>();
-    auto outputType = convOp.getResult().getType().cast<ShapedType>();
-
-    /*conv2d parameters*/
-    const int kernelWidth = filterType.getShape()[1];
-    const int kernelHeight = filterType.getShape()[2];
-    assert(kernelHeight == kernelWidth);
-
-    const int inputWidth = inputType.getShape()[3];
-    const int inputHeight = inputType.getShape()[2];
-    const int outputWidth = outputType.getShape()[3];
-    const int outputHeight = outputType.getShape()[2];
-
-    auto padAttr = convOp.getPaddingAttr();
-    auto strideAttr = convOp.getStrideAttr();
-    auto dilationAttr = convOp.getDilationAttr();
-    assert((!padAttr.empty()) && (!strideAttr.empty()) &&
-           (!dilationAttr.empty()));
-
-    auto padValue = getAttrValue(padAttr, 4);
-    auto strideValue = getAttrValue(strideAttr, 2);
-    auto dilationValue = getAttrValue(dilationAttr, 2);
-
-    /*relu parameters*/
-    auto maxFp = convOp.getMaxFp();
-    auto minFp = convOp.getMinFp();
-
-    /*todo: construct affine nested for*/
-  }
-}
-struct PadOpLowering : public OpRewritePattern<tosa::ReshapeOp> {
-  using OpRewritePattern<tosa::ReshapeOp>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(tosa::ReshapeOp reshapeOp,
-                                PatternRewriter &rewriter) const override {
-    auto op = reshapeOp->getNextNode();
-    if (!op)
-      return failure();
-
-    auto paddingAttr = op->getAttrOfType<ArrayAttr>("padding");
-    if (paddingAttr.getValue().empty())
-      return failure();
-
-    SmallVector<int64_t, 4> paddingValue;
-    for (int itr = 0; itr < 4; itr++) {
-      if (auto intAttr = dyn_cast<IntegerAttr>(paddingAttr[itr])) {
-        paddingValue.push_back(intAttr.getInt());
-      } else {
-        return failure();
-      }
-    }
-
-    auto paddingType =
-        RankedTensorType::get({4, 2}, rewriter.getIntegerType(64));
-    auto paddingDenseAttr =
-        DenseElementsAttr::get(paddingType, llvm::ArrayRef(paddingValue));
-    auto padConstOp = rewriter.create<arith::ConstantOp>(
-        op->getLoc(), paddingType, paddingDenseAttr);
-
-    auto padOp = rewriter.create<tosa::PadOp>(
-        op->getLoc(), op->getResult(0).getType(), op->getResult(0), padConstOp);
-
-    convertToAffineFor(reshapeOp);
-
-    return success();
-  }
-};
 
 struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
   using OpRewritePattern<tosa::ConstOp>::OpRewritePattern;
@@ -172,7 +92,7 @@ public:
     RewritePatternSet patterns(context);
 
     patterns.add<ConstantOpLowering>(context);
-    patterns.add<PadOpLowering>(context);
+    // patterns.add<PadOpLowering>(context);
     ConversionTarget target(*context);
     target.addIllegalOp<tosa::ConstOp>();
 
