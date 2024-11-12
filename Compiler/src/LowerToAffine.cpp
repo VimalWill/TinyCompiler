@@ -81,34 +81,33 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     // TODO: lower TinyFusion.conv2d_relu dialect to affine.for
     // https://discourse.llvm.org/t/mlir-lowering-customop-to-affine-nested-for/83083
 
-    auto weightType = conv2dReluOp.getOperands()[1].getType().cast<ShapedType>();
-    int64_t kh = weightType.getShape()[1]; 
-    int64_t kw = weightType.getShape()[2]; 
+    auto weightType =
+        conv2dReluOp.getOperands()[1].getType().cast<ShapedType>();
+    int64_t kh = weightType.getShape()[1];
+    int64_t kw = weightType.getShape()[2];
 
-    auto outputTensor = conv2dReluOp.getResult().getType().cast<ShapedType>(); 
-    int64_t o_cb = outputTensor.getShape()[0]; 
-    int64_t o_cc = outputTensor.getShape()[3]; 
-    int64_t o_ch = outputTensor.getShape()[1]; 
-    int64_t o_cw = outputTensor.getShape()[2]; 
+    auto outputTensor = conv2dReluOp.getResult().getType().cast<ShapedType>();
+    int64_t o_cb = outputTensor.getShape()[0];
+    int64_t o_cc = outputTensor.getShape()[3];
+    int64_t o_ch = outputTensor.getShape()[1];
+    int64_t o_cw = outputTensor.getShape()[2];
 
-    //todo: refactor here
-    auto outputBatchLoop = rewriter.create<affine::AffineForOp>(loc, 0, o_cb, 1);
-    rewriter.setInsertionPointToStart(outputBatchLoop.getBody());
+    auto Loop = [](PatternRewriter &rewriter, Location &loc, int64_t lower,
+                   int64_t upper) {
+      auto loop = rewriter.create<affine::AffineForOp>(loc, lower, upper, 1);
+      rewriter.setInsertionPointToStart(loop.getBody());
+      return loop;
+    };
 
-    auto outputChannelLoop = rewriter.create<affine::AffineForOp>(loc, 0, o_cc, 1);
-    rewriter.setInsertionPointToStart(outputChannelLoop.getBody());
+    auto outputBatchLoop = Loop(rewriter, loc, 0, o_cb);
+    auto outputChannelLoop = Loop(rewriter, loc, 0, o_cc);
+    auto outputHeightLoop = Loop(rewriter, loc, 0, o_ch);
+    auto outputWidthLoop = Loop(rewriter, loc, 0, o_cw);
+    auto kernelHeightLoop = Loop(rewriter, loc, 0, kh);
+    auto kernelWidthLoop = Loop(rewriter, loc, 0, kw);
 
-    auto outputHeightLoop = rewriter.create<affine::AffineForOp>(loc, 0, o_ch, 1);
-    rewriter.setInsertionPointToStart(outputHeightLoop.getBody());
-    auto outputWidthLoop = rewriter.create<affine::AffineForOp>(loc, 0, o_cw, 1);
-    rewriter.setInsertionPointToStart(outputWidthLoop.getBody());
-
-    auto kernelHeightLoop = rewriter.create<affine::AffineForOp>(loc, 0, kh, 1); 
-    rewriter.setInsertionPointToStart(kernelHeightLoop.getBody());
-    auto kernelWidthLoop = rewriter.create<affine::AffineForOp>(loc, 0, kw, 1); 
-    rewriter.setInsertionPointToStart(kernelWidthLoop.getBody());
-
-
+    //todo: computation for conv2d_relu and removed tinyfusion
+   
     return success();
   }
 };
