@@ -40,12 +40,30 @@ namespace {
 //                                 {}
 // };
 
+struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
+  using OpRewritePattern<TinyFusion::Conv2dReluOp>::OpRewritePattern;
 
-struct AffineOpLowering : public OpConversionPattern<TinyFusion::Conv2dReluOp> {
-  using OpConversionPattern<TinyFusion::Conv2dReluOp>::OpConversionPattern; 
+  LogicalResult matchAndRewrite(TinyFusion::Conv2dReluOp conv2dReluOp,
+                                PatternRewriter &rewriter) const override {
 
-  //TODO: logic for affine transformation for conv2drelu
-}
+    auto getRankedTensorType = [](const int64_t size, PatternRewriter &writer) {
+      auto type = RankedTensorType::get(size, writer.getI64Type());
+      return type;
+    };
+
+    auto Loc = conv2dReluOp.getLoc(); 
+    auto paddingAttr = conv2dReluOp.getPaddingAttr();
+    auto padType = getRankedTensorType(paddingAttr.getValue().size(), rewriter);
+  
+    auto padConstAttr =
+        DenseIntElementsAttr::get(padType, paddingAttr.getValue());
+
+    auto padDimConstOp =
+        rewriter.create<arith::ConstantOp>(Loc, padType, padConstAttr);
+    
+    return success();
+  }
+};
 
 struct ConstantOpLowering : public OpRewritePattern<tosa::ConstOp> {
   using OpRewritePattern<tosa::ConstOp>::OpRewritePattern;
@@ -92,7 +110,7 @@ public:
     RewritePatternSet patterns(context);
 
     patterns.add<ConstantOpLowering>(context);
-    // patterns.add<PadOpLowering>(context);
+    patterns.add<AffineOpLowering>(context);
     ConversionTarget target(*context);
     target.addIllegalOp<tosa::ConstOp>();
 
