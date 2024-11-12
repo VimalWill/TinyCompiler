@@ -18,6 +18,7 @@
 
 #include "llvm/ADT/Sequence.h"
 #include <memory>
+#include <vector>
 
 using namespace mlir;
 using namespace mlir::tosa;
@@ -45,22 +46,38 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
 
   LogicalResult matchAndRewrite(TinyFusion::Conv2dReluOp conv2dReluOp,
                                 PatternRewriter &rewriter) const override {
-
-    auto getRankedTensorType = [](const int64_t size, PatternRewriter &writer) {
-      auto type = RankedTensorType::get(size, writer.getI64Type());
-      return type;
-    };
-
-    auto Loc = conv2dReluOp.getLoc(); 
+    auto loc = conv2dReluOp.getLoc();
     auto paddingAttr = conv2dReluOp.getPaddingAttr();
-    auto padType = getRankedTensorType(paddingAttr.getValue().size(), rewriter);
-  
-    auto padConstAttr =
-        DenseIntElementsAttr::get(padType, paddingAttr.getValue());
+    auto padType = RankedTensorType::get({4, 2}, rewriter.getI64Type());
 
-    auto padDimConstOp =
-        rewriter.create<arith::ConstantOp>(Loc, padType, padConstAttr);
-    
+    llvm::SmallVector<int64_t, 8> paddingVal = {0, 0, 0, 0, 0, 0, 0, 0};
+    unsigned i = 4;
+    for (auto val : paddingAttr) {
+      if (auto tmp = dyn_cast<IntegerAttr>(val)) {
+        paddingVal[i++] = tmp.getInt();
+      }
+    }
+
+    auto padConstAttr = DenseIntElementsAttr::get(padType, paddingVal);
+    auto padDimConstOp = rewriter.create<arith::ConstantOp>(loc, padConstAttr);
+
+    auto reshapeOp =
+        conv2dReluOp.getOperands()[0].getDefiningOp<tosa::ReshapeOp>();
+    if (!reshapeOp)
+      return failure();
+
+    auto inputTensor = reshapeOp.getResult();
+    int64_t cc = inputTensor.getType().getShape()[0];
+    int64_t cb = inputTensor.getType().getShape()[3];
+    int64_t ph = inputTensor.getType().getShape()[1] + paddingVal[4];
+    int64_t pw = inputTensor.getType().getShape()[2] + paddingVal[6];
+    auto padOutputType =
+        RankedTensorType::get({cc, ph, pw, cb}, rewriter.getF32Type());
+    auto tosaPadOp = rewriter.create<tosa::PadOp>(loc, padOutputType,
+                                                  inputTensor, padDimConstOp);
+    if(!tosaPadOp)
+      return failure(); 
+
     return success();
   }
 };
