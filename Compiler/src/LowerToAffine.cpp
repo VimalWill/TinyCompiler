@@ -75,8 +75,22 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
         RankedTensorType::get({cc, ph, pw, cb}, rewriter.getF32Type());
     auto tosaPadOp = rewriter.create<tosa::PadOp>(loc, padOutputType,
                                                   inputTensor, padDimConstOp);
-    if(!tosaPadOp)
-      return failure(); 
+    if (!tosaPadOp)
+      return failure();
+
+    //TODO: lower TinyFusion.conv2d_relu dialect to affine.for
+    //https://discourse.llvm.org/t/mlir-lowering-customop-to-affine-nested-for/83083
+
+    auto outerLoop = rewriter.create<affine::AffineForOp>(loc, 0, cb, 1);
+    rewriter.setInsertionPointToStart(outerLoop.getBody());
+
+    auto middleLoop = rewriter.create<affine::AffineForOp>(loc, 0, cc, 1);
+    rewriter.setInsertionPointToStart(middleLoop.getBody());
+
+    auto innerLoop = rewriter.create<affine::AffineForOp>(loc, 0, ph, 1);
+    rewriter.setInsertionPointToStart(innerLoop.getBody());
+    auto finalLoop = rewriter.create<affine::AffineForOp>(loc, 0, pw, 1);
+    rewriter.setInsertionPointToStart(finalLoop.getBody());
 
     return success();
   }
