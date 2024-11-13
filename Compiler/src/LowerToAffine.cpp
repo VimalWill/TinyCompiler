@@ -30,11 +30,6 @@ using namespace mlir::TinyFusion;
 
 namespace {
 
-auto insertAllocAndDeAlloc(Location& loc, PatternRewriter& rewriter) {
-  //todo : logic to insert memref alloc & dealloc 
-  //ref: https://github.com/llvm/llvm-project/blob/856c47b884ada7dadb1081244821e0acc199cc72/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp#L56
-}
-
 struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
   using OpRewritePattern<TinyFusion::Conv2dReluOp>::OpRewritePattern;
 
@@ -93,6 +88,15 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
       return loop;
     };
 
+    // todo: add dealloc
+    RankedTensorType type =
+        conv2dReluOp.getResult().getType().cast<RankedTensorType>();
+    MemRefType memRefType =
+        MemRefType::get(type.getShape(), type.getElementType());
+    auto output = rewriter.create<memref::AllocOp>(loc, memRefType);
+    auto *parentBlock = output->getBlock();
+    output->moveBefore(&parentBlock->front());
+
     auto outputBatchLoop = Loop(rewriter, loc, 0, o_cb);
     auto outputChannelLoop = Loop(rewriter, loc, 0, o_cc);
     auto outputHeightLoop = Loop(rewriter, loc, 0, o_ch);
@@ -100,8 +104,8 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     auto kernelHeightLoop = Loop(rewriter, loc, 0, kh);
     auto kernelWidthLoop = Loop(rewriter, loc, 0, kw);
 
-    //todo: computation for conv2d_relu and removed tinyfusion
-   
+    // todo: computation for conv2d_relu and removed tinyfusion
+
     return success();
   }
 };
