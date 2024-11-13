@@ -30,16 +30,10 @@ using namespace mlir::TinyFusion;
 
 namespace {
 
-// ref:
-// https://blog.weghos.com/llvm/llvm/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp.html
-// struct Conv2dReluOpLowering : public mlir::ConversionPattern {
-//   Conv2dReluOpLowering(mlir::MLIRContext *ctx)
-//       : mlir::ConversionPattern(Conv2dReluOp::getOperationName(), 1, ctx) {}
-
-//   LogicalResult matchAndRewrite(Operation *Op, ArrayRef<Value> Operands,
-//                                 ConversionPatternRewriter &rewriter) override
-//                                 {}
-// };
+auto insertAllocAndDeAlloc(Location& loc, PatternRewriter& rewriter) {
+  //todo : logic to insert memref alloc & dealloc 
+  //ref: https://github.com/llvm/llvm-project/blob/856c47b884ada7dadb1081244821e0acc199cc72/mlir/examples/toy/Ch5/mlir/LowerToAffineLoops.cpp#L56
+}
 
 struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
   using OpRewritePattern<TinyFusion::Conv2dReluOp>::OpRewritePattern;
