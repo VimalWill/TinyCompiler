@@ -3,7 +3,12 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
+
+#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
+#include "mlir/Dialect/Bufferization/Transforms/Passes.h"
+#include "mlir/Conversion/TosaToTensor/TosaToTensor.h"
 
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
@@ -26,6 +31,8 @@ using namespace mlir::TinyFusion;
 void TinyCompilerPipeline(mlir::OpPassManager &pm) {
   pm.addNestedPass<mlir::func::FuncOp>(
       mlir::TinyFusion::registerLowerToTinyFusionPass());
+  // pm.addNestedPass<mlir::func::FuncOp>(mlir::tosa::createTosaToTensor());
+  // pm.addPass(mlir::bufferization::createEmptyTensorToAllocTensorPass());
   pm.addNestedPass<mlir::func::FuncOp>(
       mlir::TinyFusion::registerLowerToAffinePass());
   pm.addPass(mlir::createCanonicalizerPass());
