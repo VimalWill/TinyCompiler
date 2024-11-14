@@ -1,14 +1,15 @@
 #include "Dialect/TinyFusionDialect.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
-#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
 
 #include "Dialect/Passes.h"
 #include "Dialect/TinyFusionDialect.h"
+#include "mlir/IR/AffineExpr.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/PatternMatch.h"
@@ -70,6 +71,15 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     for (auto val : paddingAttr) {
       if (auto tmp = dyn_cast<IntegerAttr>(val)) {
         paddingVal[i++] = tmp.getInt();
+      }
+    }
+
+    auto strideAttr = conv2dReluOp.getStrideAttr();
+    llvm::SmallVector<int64_t, 2> strideVal = {0, 0};
+    i = 0;
+    for (auto val : strideAttr) {
+      if (auto tmp = dyn_cast<IntegerAttr>(val)) {
+        strideVal[i++] = tmp.getInt();
       }
     }
 
@@ -144,9 +154,66 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     rewriter.restoreInsertionPoint(originalInsertionPoint);
 
     MemRefType padOutputMemRefType = convertTensorToMemRef(padOutputType);
-    auto actMemRef = rewriter.create<bufferization::ToMemrefOp>(loc, padOutputMemRefType,tosaPadOp.getResult());
-    if(!actMemRef)
-      return failure(); 
+    auto actMemRef = rewriter.create<bufferization::ToMemrefOp>(
+        loc, padOutputMemRefType, tosaPadOp.getResult());
+    if (!actMemRef)
+      return failure();
+
+    RankedTensorType outputTensorType =
+        cast<RankedTensorType>(conv2dReluOp.getResult().getType());
+    MemRefType outputMemRefType = convertTensorToMemRef(outputTensorType);
+    auto outputMemRef = insertAllocAndDealloc(outputMemRefType, loc, rewriter);
+
+    int64_t ic = padOutputType.getShape()[3];
+    int64_t ob = outputTensorType.getShape()[0];
+    int64_t oc = outputTensorType.getShape()[3];
+    int64_t oh = outputTensorType.getShape()[1];
+    int64_t ow = outputTensorType.getShape()[2];
+
+    AffineExpr idx_a, idx_b;
+    bindDims(rewriter.getContext(), idx_a, idx_b);
+    AffineExpr expr_a = idx_a * strideVal[0] + idx_b;
+    AffineMap map_a = AffineMap::get(2, 0, expr_a);
+
+    AffineExpr idx_c, idx_d;
+    bindDims(rewriter.getContext(), idx_c, idx_d);
+    AffineExpr expr_b = idx_c * strideVal[1] + idx_d;
+    AffineMap map_b = AffineMap::get(2, 0, expr_b);
+
+    auto o_b = Loop(rewriter, loc, 0, ob);
+    auto o_h = Loop(rewriter, loc, 0, oh);
+    auto o_w = Loop(rewriter, loc, 0, ow);
+    auto o_c = Loop(rewriter, loc, 0, oc);
+    auto k_h = Loop(rewriter, loc, 0, kh);
+    auto k_w = Loop(rewriter, loc, 0, kw);
+    auto i_c = Loop(rewriter, loc, 0, ic);
+
+    auto io_b = o_b.getInductionVar();
+    auto io_h = o_h.getInductionVar();
+    auto io_w = o_w.getInductionVar();
+    auto io_c = o_c.getInductionVar(); 
+    auto ii_c = i_c.getInductionVar();
+    auto ik_h = k_h.getInductionVar();
+    auto ik_w = k_w.getInductionVar();
+
+    auto mapA_res = rewriter.create<affine::AffineApplyOp>(
+        loc, map_a, ValueRange{io_h, ik_h});
+    auto mapB_res = rewriter.create<affine::AffineApplyOp>(
+        loc, map_b, ValueRange{io_w, ik_w});
+    auto inputMemLoad = rewriter.create<memref::LoadOp>(
+        loc, actMemRef, ValueRange{io_b, mapA_res, mapB_res, ii_c});
+    auto kernelMemLoad = rewriter.create<memref::LoadOp>(
+        loc, weightMemRef, ValueRange{ik_h, ik_w, ii_c, io_c});
+
+    auto mulOp =
+        rewriter.create<arith::MulFOp>(loc, inputMemLoad, kernelMemLoad);
+    auto outputMemLoad = rewriter.create<memref::LoadOp>(
+        loc, outputMemRef, ValueRange{io_b, io_h, io_w, io_c});
+    auto addOp = rewriter.create<arith::AddFOp>(loc, mulOp, outputMemLoad);
+    auto storeOp = rewriter.create<memref::StoreOp>(
+        loc, addOp, outputMemRef, ValueRange{io_b, io_h, io_w, io_c});
+    
+    //todo: update relu logic
 
     return success();
   }
@@ -186,9 +253,10 @@ public:
   }
 
   void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
-                    func::FuncDialect, affine::AffineDialect,
-                    arith::ArithDialect, memref::MemRefDialect, bufferization::BufferizationDialect>();
+    registry
+        .insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
+                func::FuncDialect, affine::AffineDialect, arith::ArithDialect,
+                memref::MemRefDialect, bufferization::BufferizationDialect>();
   }
 
   void runOnOperation() override {
