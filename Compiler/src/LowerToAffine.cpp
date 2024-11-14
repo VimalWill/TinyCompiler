@@ -5,6 +5,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
+#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
 
 #include "Dialect/Passes.h"
 #include "Dialect/TinyFusionDialect.h"
@@ -30,13 +31,27 @@ using namespace mlir::affine;
 using namespace mlir::tensor;
 using namespace mlir::TinyFusion;
 
-
-
-mlir::affine::AffineForOp Loop(PatternRewriter &rewriter, Location &loc, int64_t lower,
-                   int64_t upper) {
+mlir::affine::AffineForOp Loop(PatternRewriter &rewriter, Location &loc,
+                               int64_t lower, int64_t upper) {
   auto loop = rewriter.create<affine::AffineForOp>(loc, lower, upper, 1);
   rewriter.setInsertionPointToStart(loop.getBody());
   return loop;
+}
+
+static MemRefType convertTensorToMemRef(RankedTensorType type) {
+  return MemRefType::get(type.getShape(), type.getElementType());
+}
+
+static Value insertAllocAndDealloc(MemRefType type, Location loc,
+                                   PatternRewriter &rewriter) {
+  auto alloc = rewriter.create<memref::AllocOp>(loc, type);
+
+  auto *parentBlock = alloc->getBlock();
+  alloc->moveBefore(&parentBlock->front());
+
+  auto dealloc = rewriter.create<memref::DeallocOp>(loc, alloc);
+  dealloc->moveBefore(&parentBlock->back());
+  return alloc;
 }
 
 namespace {
@@ -77,11 +92,15 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
                                                   inputTensor, padDimConstOp);
     if (!tosaPadOp)
       return failure();
-    
-    auto originalInsertionPoint = rewriter.saveInsertionPoint(); 
+
+    auto originalInsertionPoint = rewriter.saveInsertionPoint();
     auto weightConstop =
         conv2dReluOp.getOperands()[1].getDefiningOp<arith::ConstantOp>();
     if (!weightConstop)
+      return failure();
+    auto biasConstop =
+        conv2dReluOp.getOperands()[2].getDefiningOp<arith::ConstantOp>();
+    if (!biasConstop)
       return failure();
 
     auto weightType =
@@ -91,12 +110,9 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     int64_t wb = weightType.getShape()[0];
     int64_t wc = weightType.getShape()[3];
 
-    MemRefType weightMemRefType =
-        MemRefType::get(weightType.getShape(), weightType.getElementType());
+    MemRefType weightMemRefType = convertTensorToMemRef(weightType);
+    Value weightMemRef = insertAllocAndDealloc(weightMemRefType, loc, rewriter);
 
-    Value weightMemRef =
-        rewriter.create<memref::AllocOp>(loc, weightMemRefType);
-    
     auto wB = Loop(rewriter, loc, 0, wb);
     auto wH = Loop(rewriter, loc, 0, kh);
     auto wW = Loop(rewriter, loc, 0, kw);
@@ -107,52 +123,30 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     auto w = wW.getInductionVar();
     auto c = wC.getInductionVar();
 
-    auto tmp = rewriter.create<tensor::ExtractOp>(loc, weightConstop,
-                                                  ValueRange{b, h, w, c});
-    rewriter.create<memref::StoreOp>(loc, tmp, weightMemRef,
+    auto weightTmp = rewriter.create<tensor::ExtractOp>(loc, weightConstop,
+                                                        ValueRange{b, h, w, c});
+    rewriter.create<memref::StoreOp>(loc, weightTmp, weightMemRef,
                                      ValueRange{b, h, w, c});
-    
+
     rewriter.restoreInsertionPoint(originalInsertionPoint);
-    RankedTensorType biasTensorType = conv2dReluOp.getOperands()[2]
-                                                .getType()
-                                                .cast<RankedTensorType>();
-    MemRefType biasMemRefType =
-        MemRefType::get(biasTensorType.getShape(), biasTensorType.getElementType());
-    Value biasMemRef =
-        rewriter.create<memref::AllocOp>(loc, biasMemRefType);
+    RankedTensorType biasTensorType =
+        conv2dReluOp.getOperands()[2].getType().cast<RankedTensorType>();
+    MemRefType biasMemRefType = convertTensorToMemRef(biasTensorType);
+    Value biasMemRef = insertAllocAndDealloc(biasMemRefType, loc, rewriter);
 
-    // auto biasConstop =
-    // conv2dReluOp.getOperands()[2].getDefiningOp<arith::ConstantOp>(); if
-    // (!biasConstop)
-    //   return failure();
+    int64_t bs = biasTensorType.getShape()[0];
+    auto bW = Loop(rewriter, loc, 0, bs);
 
-    // constToMemRef(biasConstop, rewriter);
+    auto s = bW.getInductionVar();
+    auto biasTmp =
+        rewriter.create<tensor::ExtractOp>(loc, biasConstop, ValueRange{s});
+    rewriter.create<memref::StoreOp>(loc, biasTmp, biasMemRef, ValueRange{s});
+    rewriter.restoreInsertionPoint(originalInsertionPoint);
 
-    // TODO: lower TinyFusion.conv2d_relu dialect to affine.for
-    // https://discourse.llvm.org/t/mlir-lowering-customop-to-affine-nested-for/83083
-
-    // auto outputTensor =
-    // conv2dReluOp.getResult().getType().cast<ShapedType>(); int64_t o_cb =
-    // outputTensor.getShape()[0]; int64_t o_cc = outputTensor.getShape()[3];
-    // int64_t o_ch = outputTensor.getShape()[1];
-    // int64_t o_cw = outputTensor.getShape()[2];
-
-    // // todo: add dealloc
-    // RankedTensorType type =
-    //     conv2dReluOp.getResult().getType().cast<RankedTensorType>();
-    // MemRefType memRefType =
-    //     MemRefType::get(type.getShape(), type.getElementType());
-    // auto output = rewriter.create<memref::AllocOp>(loc, memRefType);
-    // auto *parentBlock = output->getBlock();
-    // output->moveBefore(&parentBlock->front());
-
-    // auto outputBatchLoop = Loop(rewriter, loc, 0, o_cb);
-    // auto outputChannelLoop = Loop(rewriter, loc, 0, o_ch);
-    // auto outputHeightLoop = Loop(rewriter, loc, 0, o_cw);
-    // auto outputWidthLoop = Loop(rewriter, loc, 0, o_cc);
-    // auto kernelHeightLoop = Loop(rewriter, loc, 0, kh);
-    // auto kernelWidthLoop = Loop(rewriter, loc, 0, kw);
-    // auto inputChannelLoop = Loop(rewriter, loc, 0, cc);
+    MemRefType padOutputMemRefType = convertTensorToMemRef(padOutputType);
+    auto actMemRef = rewriter.create<bufferization::ToMemrefOp>(loc, padOutputMemRefType,tosaPadOp.getResult());
+    if(!actMemRef)
+      return failure(); 
 
     return success();
   }
@@ -194,7 +188,7 @@ public:
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<TinyFusion::TinyFusionDialect, tosa::TosaDialect,
                     func::FuncDialect, affine::AffineDialect,
-                    arith::ArithDialect, memref::MemRefDialect>();
+                    arith::ArithDialect, memref::MemRefDialect, bufferization::BufferizationDialect>();
   }
 
   void runOnOperation() override {
