@@ -3,6 +3,7 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 
 #include "Dialect/Passes.h"
@@ -26,7 +27,17 @@ using namespace mlir::func;
 using namespace mlir::arith;
 using namespace mlir::memref;
 using namespace mlir::affine;
+using namespace mlir::tensor;
 using namespace mlir::TinyFusion;
+
+
+
+mlir::affine::AffineForOp Loop(PatternRewriter &rewriter, Location &loc, int64_t lower,
+                   int64_t upper) {
+  auto loop = rewriter.create<affine::AffineForOp>(loc, lower, upper, 1);
+  rewriter.setInsertionPointToStart(loop.getBody());
+  return loop;
+}
 
 namespace {
 
@@ -66,45 +77,82 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
                                                   inputTensor, padDimConstOp);
     if (!tosaPadOp)
       return failure();
+    
+    auto originalInsertionPoint = rewriter.saveInsertionPoint(); 
+    auto weightConstop =
+        conv2dReluOp.getOperands()[1].getDefiningOp<arith::ConstantOp>();
+    if (!weightConstop)
+      return failure();
+
+    auto weightType =
+        conv2dReluOp.getOperands()[1].getType().cast<RankedTensorType>();
+    int64_t kh = weightType.getShape()[1];
+    int64_t kw = weightType.getShape()[2];
+    int64_t wb = weightType.getShape()[0];
+    int64_t wc = weightType.getShape()[3];
+
+    MemRefType weightMemRefType =
+        MemRefType::get(weightType.getShape(), weightType.getElementType());
+
+    Value weightMemRef =
+        rewriter.create<memref::AllocOp>(loc, weightMemRefType);
+    
+    auto wB = Loop(rewriter, loc, 0, wb);
+    auto wH = Loop(rewriter, loc, 0, kh);
+    auto wW = Loop(rewriter, loc, 0, kw);
+    auto wC = Loop(rewriter, loc, 0, wc);
+
+    auto b = wB.getInductionVar();
+    auto h = wH.getInductionVar();
+    auto w = wW.getInductionVar();
+    auto c = wC.getInductionVar();
+
+    auto tmp = rewriter.create<tensor::ExtractOp>(loc, weightConstop,
+                                                  ValueRange{b, h, w, c});
+    rewriter.create<memref::StoreOp>(loc, tmp, weightMemRef,
+                                     ValueRange{b, h, w, c});
+    
+    rewriter.restoreInsertionPoint(originalInsertionPoint);
+    RankedTensorType biasTensorType = conv2dReluOp.getOperands()[2]
+                                                .getType()
+                                                .cast<RankedTensorType>();
+    MemRefType biasMemRefType =
+        MemRefType::get(biasTensorType.getShape(), biasTensorType.getElementType());
+    Value biasMemRef =
+        rewriter.create<memref::AllocOp>(loc, biasMemRefType);
+
+    // auto biasConstop =
+    // conv2dReluOp.getOperands()[2].getDefiningOp<arith::ConstantOp>(); if
+    // (!biasConstop)
+    //   return failure();
+
+    // constToMemRef(biasConstop, rewriter);
 
     // TODO: lower TinyFusion.conv2d_relu dialect to affine.for
     // https://discourse.llvm.org/t/mlir-lowering-customop-to-affine-nested-for/83083
 
-    auto weightType =
-        conv2dReluOp.getOperands()[1].getType().cast<ShapedType>();
-    int64_t kh = weightType.getShape()[1];
-    int64_t kw = weightType.getShape()[2];
+    // auto outputTensor =
+    // conv2dReluOp.getResult().getType().cast<ShapedType>(); int64_t o_cb =
+    // outputTensor.getShape()[0]; int64_t o_cc = outputTensor.getShape()[3];
+    // int64_t o_ch = outputTensor.getShape()[1];
+    // int64_t o_cw = outputTensor.getShape()[2];
 
-    auto outputTensor = conv2dReluOp.getResult().getType().cast<ShapedType>();
-    int64_t o_cb = outputTensor.getShape()[0];
-    int64_t o_cc = outputTensor.getShape()[3];
-    int64_t o_ch = outputTensor.getShape()[1];
-    int64_t o_cw = outputTensor.getShape()[2];
+    // // todo: add dealloc
+    // RankedTensorType type =
+    //     conv2dReluOp.getResult().getType().cast<RankedTensorType>();
+    // MemRefType memRefType =
+    //     MemRefType::get(type.getShape(), type.getElementType());
+    // auto output = rewriter.create<memref::AllocOp>(loc, memRefType);
+    // auto *parentBlock = output->getBlock();
+    // output->moveBefore(&parentBlock->front());
 
-    auto Loop = [](PatternRewriter &rewriter, Location &loc, int64_t lower,
-                   int64_t upper) {
-      auto loop = rewriter.create<affine::AffineForOp>(loc, lower, upper, 1);
-      rewriter.setInsertionPointToStart(loop.getBody());
-      return loop;
-    };
-
-    // todo: add dealloc
-    RankedTensorType type =
-        conv2dReluOp.getResult().getType().cast<RankedTensorType>();
-    MemRefType memRefType =
-        MemRefType::get(type.getShape(), type.getElementType());
-    auto output = rewriter.create<memref::AllocOp>(loc, memRefType);
-    auto *parentBlock = output->getBlock();
-    output->moveBefore(&parentBlock->front());
-
-    auto outputBatchLoop = Loop(rewriter, loc, 0, o_cb);
-    auto outputChannelLoop = Loop(rewriter, loc, 0, o_cc);
-    auto outputHeightLoop = Loop(rewriter, loc, 0, o_ch);
-    auto outputWidthLoop = Loop(rewriter, loc, 0, o_cw);
-    auto kernelHeightLoop = Loop(rewriter, loc, 0, kh);
-    auto kernelWidthLoop = Loop(rewriter, loc, 0, kw);
-
-    // todo: computation for conv2d_relu and removed tinyfusion
+    // auto outputBatchLoop = Loop(rewriter, loc, 0, o_cb);
+    // auto outputChannelLoop = Loop(rewriter, loc, 0, o_ch);
+    // auto outputHeightLoop = Loop(rewriter, loc, 0, o_cw);
+    // auto outputWidthLoop = Loop(rewriter, loc, 0, o_cc);
+    // auto kernelHeightLoop = Loop(rewriter, loc, 0, kh);
+    // auto kernelWidthLoop = Loop(rewriter, loc, 0, kw);
+    // auto inputChannelLoop = Loop(rewriter, loc, 0, cc);
 
     return success();
   }
