@@ -25,7 +25,7 @@ The compiler can be tested as follows,
 ```
 $ ./tools/TinyCompiler-Opt --compile ../../Test/Conv2dRelu.mlir 
 ```
-> The pass-pipeline supports affine transformation for limited tinyfusion operators lowering most of the operators to tinyfusion, arith and tensor dialects. 
+> The pass-pipeline supports affine transformation for limited tinyfusion operators and lowers most operators to tinyfusion, arith and tensor dialects. 
 
 ## In-progress 
 1. Affine lowering for every TinyFusion operator
