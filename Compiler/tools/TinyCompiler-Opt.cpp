@@ -31,10 +31,10 @@ using namespace mlir::TinyFusion;
 void TinyCompilerPipeline(mlir::OpPassManager &pm) {
   pm.addNestedPass<mlir::func::FuncOp>(
       mlir::TinyFusion::registerLowerToTinyFusionPass());
-  // pm.addNestedPass<mlir::func::FuncOp>(mlir::tosa::createTosaToTensor());
-  // pm.addPass(mlir::bufferization::createEmptyTensorToAllocTensorPass());
   pm.addNestedPass<mlir::func::FuncOp>(
       mlir::TinyFusion::registerLowerToAffinePass());
+  pm.addNestedPass<mlir::func::FuncOp>(mlir::tosa::createTosaToTensor());
+  pm.addPass(mlir::bufferization::createEmptyTensorToAllocTensorPass());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createSCCPPass());
 }

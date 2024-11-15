@@ -83,6 +83,11 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
       }
     }
 
+    llvm::APFloat fpMinValue = conv2dReluOp.getMinFp();
+    FloatType floatTy = FloatType::getF32(rewriter.getContext());
+    FloatAttr floatAttr = FloatAttr::get(floatTy, fpMinValue);
+    auto fpMinConstOp = rewriter.create<arith::ConstantOp>(loc, floatAttr);
+
     auto padConstAttr = DenseIntElementsAttr::get(padType, paddingVal);
     auto padDimConstOp = rewriter.create<arith::ConstantOp>(loc, padConstAttr);
 
@@ -153,6 +158,20 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     rewriter.create<memref::StoreOp>(loc, biasTmp, biasMemRef, ValueRange{s});
     rewriter.restoreInsertionPoint(originalInsertionPoint);
 
+    MemRefType fpMinMemRefType = MemRefType::get({}, fpMinConstOp.getType());
+    auto fpMinMemRef = rewriter.create<memref::AllocOp>(loc, fpMinMemRefType);
+    if (!fpMinMemRef)
+      failure();
+    rewriter.create<memref::StoreOp>(loc, fpMinConstOp, fpMinMemRef,
+                                     ValueRange{});
+    auto fpMinMemDealloc = rewriter.create<memref::DeallocOp>(loc, fpMinMemRef);
+    if (!fpMinMemDealloc)
+      failure(); 
+    
+    auto *parentBlock = fpMinMemDealloc->getBlock();
+    fpMinMemDealloc->moveBefore(&parentBlock->back());
+    
+
     MemRefType padOutputMemRefType = convertTensorToMemRef(padOutputType);
     auto actMemRef = rewriter.create<bufferization::ToMemrefOp>(
         loc, padOutputMemRefType, tosaPadOp.getResult());
@@ -169,6 +188,19 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     int64_t oc = outputTensorType.getShape()[3];
     int64_t oh = outputTensorType.getShape()[1];
     int64_t ow = outputTensorType.getShape()[2];
+
+    auto mo_b = Loop(rewriter, loc, 0, ob);
+    auto mo_h = Loop(rewriter, loc, 0, oh);
+    auto mo_w = Loop(rewriter, loc, 0, ow);
+    auto mo_c = Loop(rewriter, loc, 0, oc); 
+
+    auto mob = mo_b.getInductionVar();
+    auto moh = mo_h.getInductionVar();
+    auto mow = mo_w.getInductionVar();
+    auto moc = mo_c.getInductionVar();
+
+    rewriter.create<memref::StoreOp>(loc, fpMinConstOp, outputMemRef, ValueRange{mob, moh, mow, moc}); 
+    rewriter.restoreInsertionPoint(originalInsertionPoint);
 
     AffineExpr idx_a, idx_b;
     bindDims(rewriter.getContext(), idx_a, idx_b);
@@ -191,7 +223,7 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     auto io_b = o_b.getInductionVar();
     auto io_h = o_h.getInductionVar();
     auto io_w = o_w.getInductionVar();
-    auto io_c = o_c.getInductionVar(); 
+    auto io_c = o_c.getInductionVar();
     auto ii_c = i_c.getInductionVar();
     auto ik_h = k_h.getInductionVar();
     auto ik_w = k_w.getInductionVar();
@@ -210,10 +242,24 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     auto outputMemLoad = rewriter.create<memref::LoadOp>(
         loc, outputMemRef, ValueRange{io_b, io_h, io_w, io_c});
     auto addOp = rewriter.create<arith::AddFOp>(loc, mulOp, outputMemLoad);
+
+    // bias 
+    auto biasMemLoad = rewriter.create<memref::LoadOp>(
+      loc, biasMemRef, ValueRange{io_c}
+    );
+    auto biasAddOp = rewriter.create<arith::AddFOp>(loc, addOp, biasMemLoad);
+
+    // relu
+    auto fpMinMemLoad = rewriter.create<memref::LoadOp>(
+        loc, fpMinMemRef, ValueRange{});
+    auto maxOp = rewriter.create<arith::MaximumFOp>(loc, fpMinMemLoad, biasAddOp); 
+
     auto storeOp = rewriter.create<memref::StoreOp>(
-        loc, addOp, outputMemRef, ValueRange{io_b, io_h, io_w, io_c});
-    
-    //todo: update relu logic
+        loc, maxOp, outputMemRef, ValueRange{io_b, io_h, io_w, io_c});
+
+    rewriter.restoreInsertionPoint(originalInsertionPoint);
+    auto ConvOutOp = rewriter.create<bufferization::ToTensorOp>(loc, outputTensorType, outputMemRef); 
+    rewriter.replaceOp(conv2dReluOp, ConvOutOp.getResult());
 
     return success();
   }
