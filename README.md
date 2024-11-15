@@ -1,6 +1,8 @@
 # Tiny Compiler 
 Minimal implementation for graph compiler with torch_mlir frontend to compile AI workloads to the NVIDIA GPU. The soul purpose of the project to understand the graph compilers and MLIR-framework. 
 
+![TinyCompiler-Stack](Docs/TinyCompiler-Stack.png "TinyCompiler-Stack")
+
 ## focused Graph Optimization 
 > More optimization will be focused in future and looking for colabs for the project and learning process
 
