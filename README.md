@@ -23,9 +23,10 @@ $ make -j32
 ```
 The compiler can be tested as follows, 
 ```
-$ ./tools/TinyCompiler-Opt --compile ../../Test/Conv2dSilu.mlir 
+$ ./tools/TinyCompiler-Opt --compile ../../Test/Conv2dRelu.mlir 
 ```
-> The pass-pipeline supports the limited fusion operation and converting tosa.constant to arith.constant
+> The pass-pipeline supports affine transformation for limited tinyfusion operators lowering most of the operators to tinyfusion, arith and tensor dialects. 
 
 ## In-progress 
-1. Lowering TinyFusion dialect to affine dialect 
+1. Affine lowering for every TinyFusion operator
+2. ```TinyFlow.dispatch()``` to support parallelism and scalability
