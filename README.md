@@ -25,7 +25,7 @@ $ make -j32
 ```
 The compiler can be tested as follows, 
 ```
-$ ./tools/TinyCompiler-Opt --compile ../../Test/Conv2dRelu.mlir 
+$ ./tools/TinyCompiler-Opt --cpu-compile ../../Test/Conv2dRelu.mlir 
 ```
 > The pass-pipeline supports affine transformation for limited tinyfusion operators and lowers most operators to tinyfusion, arith and tensor dialects. 
 
