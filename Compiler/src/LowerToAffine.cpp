@@ -118,8 +118,8 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     if (!biasConstop)
       return failure();
 
-    auto weightType =
-        conv2dReluOp.getOperands()[1].getType().cast<RankedTensorType>();
+    auto weightType = mlir::dyn_cast<RankedTensorType>(
+        conv2dReluOp.getOperands()[1].getType());
     int64_t kh = weightType.getShape()[1];
     int64_t kw = weightType.getShape()[2];
     int64_t wb = weightType.getShape()[0];
@@ -144,8 +144,8 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
                                      ValueRange{b, h, w, c});
 
     rewriter.restoreInsertionPoint(originalInsertionPoint);
-    RankedTensorType biasTensorType =
-        conv2dReluOp.getOperands()[2].getType().cast<RankedTensorType>();
+    RankedTensorType biasTensorType = mlir::dyn_cast<RankedTensorType>(
+        conv2dReluOp.getOperands()[2].getType());
     MemRefType biasMemRefType = convertTensorToMemRef(biasTensorType);
     Value biasMemRef = insertAllocAndDealloc(biasMemRefType, loc, rewriter);
 
@@ -166,11 +166,10 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
                                      ValueRange{});
     auto fpMinMemDealloc = rewriter.create<memref::DeallocOp>(loc, fpMinMemRef);
     if (!fpMinMemDealloc)
-      failure(); 
-    
+      failure();
+
     auto *parentBlock = fpMinMemDealloc->getBlock();
     fpMinMemDealloc->moveBefore(&parentBlock->back());
-    
 
     MemRefType padOutputMemRefType = convertTensorToMemRef(padOutputType);
     auto actMemRef = rewriter.create<bufferization::ToMemrefOp>(
@@ -179,7 +178,7 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
       return failure();
 
     RankedTensorType outputTensorType =
-        cast<RankedTensorType>(conv2dReluOp.getResult().getType());
+        mlir::dyn_cast<RankedTensorType>(conv2dReluOp.getResult().getType());
     MemRefType outputMemRefType = convertTensorToMemRef(outputTensorType);
     auto outputMemRef = insertAllocAndDealloc(outputMemRefType, loc, rewriter);
 
@@ -192,14 +191,15 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
     auto mo_b = Loop(rewriter, loc, 0, ob);
     auto mo_h = Loop(rewriter, loc, 0, oh);
     auto mo_w = Loop(rewriter, loc, 0, ow);
-    auto mo_c = Loop(rewriter, loc, 0, oc); 
+    auto mo_c = Loop(rewriter, loc, 0, oc);
 
     auto mob = mo_b.getInductionVar();
     auto moh = mo_h.getInductionVar();
     auto mow = mo_w.getInductionVar();
     auto moc = mo_c.getInductionVar();
 
-    rewriter.create<memref::StoreOp>(loc, fpMinConstOp, outputMemRef, ValueRange{mob, moh, mow, moc}); 
+    rewriter.create<memref::StoreOp>(loc, fpMinConstOp, outputMemRef,
+                                     ValueRange{mob, moh, mow, moc});
     rewriter.restoreInsertionPoint(originalInsertionPoint);
 
     AffineExpr idx_a, idx_b;
@@ -243,22 +243,23 @@ struct AffineOpLowering : public OpRewritePattern<TinyFusion::Conv2dReluOp> {
         loc, outputMemRef, ValueRange{io_b, io_h, io_w, io_c});
     auto addOp = rewriter.create<arith::AddFOp>(loc, mulOp, outputMemLoad);
 
-    // bias 
-    auto biasMemLoad = rewriter.create<memref::LoadOp>(
-      loc, biasMemRef, ValueRange{io_c}
-    );
+    // bias
+    auto biasMemLoad =
+        rewriter.create<memref::LoadOp>(loc, biasMemRef, ValueRange{io_c});
     auto biasAddOp = rewriter.create<arith::AddFOp>(loc, addOp, biasMemLoad);
 
     // relu
-    auto fpMinMemLoad = rewriter.create<memref::LoadOp>(
-        loc, fpMinMemRef, ValueRange{});
-    auto maxOp = rewriter.create<arith::MaximumFOp>(loc, fpMinMemLoad, biasAddOp); 
+    auto fpMinMemLoad =
+        rewriter.create<memref::LoadOp>(loc, fpMinMemRef, ValueRange{});
+    auto maxOp =
+        rewriter.create<arith::MaximumFOp>(loc, fpMinMemLoad, biasAddOp);
 
     auto storeOp = rewriter.create<memref::StoreOp>(
         loc, maxOp, outputMemRef, ValueRange{io_b, io_h, io_w, io_c});
 
     rewriter.restoreInsertionPoint(originalInsertionPoint);
-    auto ConvOutOp = rewriter.create<bufferization::ToTensorOp>(loc, outputTensorType, outputMemRef); 
+    auto ConvOutOp = rewriter.create<bufferization::ToTensorOp>(
+        loc, outputTensorType, outputMemRef);
     rewriter.replaceOp(conv2dReluOp, ConvOutOp.getResult());
 
     return success();

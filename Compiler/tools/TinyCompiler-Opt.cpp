@@ -9,6 +9,7 @@
 #include "mlir/Dialect/Bufferization/IR/Bufferization.h"
 #include "mlir/Dialect/Bufferization/Transforms/Passes.h"
 #include "mlir/Conversion/TosaToTensor/TosaToTensor.h"
+#include "mlir/Dialect/Affine/Transforms/Transforms.h"
 
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
@@ -28,7 +29,7 @@
 using namespace mlir;
 using namespace mlir::TinyFusion;
 
-void TinyCompilerPipeline(mlir::OpPassManager &pm) {
+void indOptPipeline(mlir::OpPassManager &pm) {
   pm.addNestedPass<mlir::func::FuncOp>(
       mlir::TinyFusion::registerLowerToTinyFusionPass());
   pm.addNestedPass<mlir::func::FuncOp>(
@@ -37,6 +38,13 @@ void TinyCompilerPipeline(mlir::OpPassManager &pm) {
   pm.addPass(mlir::bufferization::createEmptyTensorToAllocTensorPass());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createSCCPPass());
+
+}
+
+void cpuTinyCompilerPipeline(mlir::OpPassManager &pm) {
+
+  indOptPipeline(pm); 
+  
 }
 
 int main(int argc, char *argv[]) {
@@ -46,8 +54,6 @@ int main(int argc, char *argv[]) {
   }
 
   mlir::registerAllPasses();
-  // mlir::TinyFusion::registerLowerToTinyFusionPass();
-  // mlir::TinyFusion::registerLowerToAffinePass();
   mlir::DialectRegistry registry;
   registry.insert<mlir::tosa::TosaDialect, mlir::TinyFusion::TinyFusionDialect,
                   mlir::func::FuncDialect, mlir::affine::AffineDialect,
@@ -56,8 +62,8 @@ int main(int argc, char *argv[]) {
   mlir::MLIRContext context(registry);
 
   mlir::PassPipelineRegistration<> pipeline(
-      "compile", "Runs lowering from TOSA to Arith, including fusion",
-      TinyCompilerPipeline);
+      "cpu-compile", "lowers to CPU instruction set",
+      cpuTinyCompilerPipeline);
 
   return asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "TinyCompiler-opt", registry));
