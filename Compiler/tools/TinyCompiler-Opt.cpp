@@ -6,10 +6,10 @@
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 
-#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
-#include "mlir/Dialect/Bufferization/Transforms/Passes.h"
 #include "mlir/Conversion/TosaToTensor/TosaToTensor.h"
 #include "mlir/Dialect/Affine/Transforms/Transforms.h"
+#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
+#include "mlir/Dialect/Bufferization/Transforms/Passes.h"
 
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
@@ -38,14 +38,12 @@ void indOptPipeline(mlir::OpPassManager &pm) {
   pm.addPass(mlir::bufferization::createEmptyTensorToAllocTensorPass());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createSCCPPass());
-
 }
 
 void cpuTinyCompilerPipeline(mlir::OpPassManager &pm) {
 
-  indOptPipeline(pm); 
+  indOptPipeline(pm);
   pm.addPass(mlir::TinyFusion::registerLoopAnalysisPass());
-  
 }
 
 int main(int argc, char *argv[]) {
@@ -63,8 +61,7 @@ int main(int argc, char *argv[]) {
   mlir::MLIRContext context(registry);
 
   mlir::PassPipelineRegistration<> pipeline(
-      "cpu-compile", "lowers to CPU instruction set",
-      cpuTinyCompilerPipeline);
+      "cpu-compile", "lowers to CPU instruction set", cpuTinyCompilerPipeline);
 
   return asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "TinyCompiler-opt", registry));

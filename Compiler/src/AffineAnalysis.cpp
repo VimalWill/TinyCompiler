@@ -9,14 +9,18 @@
 
 using namespace mlir;
 
-
-int64_t getNestLoop(mlir::Operation *op, int64_t depth = 0) {
-    if (auto forOp = dyn_cast<affine::AffineForOp>(op)) {
-        for (auto &nestedOp : forOp.getBody()->getOperations()) {
-            return getNestLoop(&nestedOp, depth + 1);
-        }
+int64_t getNestDepth(mlir::Operation *op, int64_t depth = 0) {
+  if (auto forOp = dyn_cast<affine::AffineForOp>(op)) {
+    for (auto &nestedOp : forOp.getBody()->getOperations()) {
+      return getNestDepth(&nestedOp, depth + 1);
     }
-    return depth;
+  }
+  return depth;
+}
+
+void estimateTilePerf() {
+  llvm::errs() << "found"
+               << "\n";
 }
 
 namespace {
@@ -34,8 +38,9 @@ public:
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();
     funcOp.walk([&](mlir::Operation *op) {
-        int64_t count = getNestLoop(op); 
-        llvm::errs() << count << "\n"; 
+      int64_t NestDepth = getNestDepth(op);
+      if (NestDepth == 7)
+        estimateTilePerf();
     });
   }
 };
