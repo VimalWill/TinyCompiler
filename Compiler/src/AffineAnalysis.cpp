@@ -8,6 +8,17 @@
 #include "Dialect/Passes.h"
 
 using namespace mlir;
+
+
+int64_t getNestLoop(mlir::Operation *op, int64_t depth = 0) {
+    if (auto forOp = dyn_cast<affine::AffineForOp>(op)) {
+        for (auto &nestedOp : forOp.getBody()->getOperations()) {
+            return getNestLoop(&nestedOp, depth + 1);
+        }
+    }
+    return depth;
+}
+
 namespace {
 struct TileFessibilityAnalysis
     : public PassWrapper<TileFessibilityAnalysis, OperationPass<func::FuncOp>> {
@@ -17,17 +28,15 @@ public:
 
   StringRef getArgument() const final { return "tile-fessibility-analysis"; }
   StringRef getDescription() const final {
-    return "analyze the fessibitiy of tiling";
+    return "Analyze the feasibility of tiling";
   }
 
   void runOnOperation() override {
-    func::FuncOp Op = getOperation(); 
-    Op.walk([&](mlir::Operation *op) {
-        if(dyn_cast<affine::AffineForOp>(op))
-            llvm::errs() << "found" << "\n"; 
-        else 
-            llvm::errs() << "not found" << "\n"; 
-    }); 
+    func::FuncOp funcOp = getOperation();
+    funcOp.walk([&](mlir::Operation *op) {
+        int64_t count = getNestLoop(op); 
+        llvm::errs() << count << "\n"; 
+    });
   }
 };
 } // namespace
