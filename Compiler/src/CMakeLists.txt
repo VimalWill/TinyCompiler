@@ -2,6 +2,7 @@ add_mlir_dialect_library(MLIRTinyFusion
         TinyFusionDialect.cpp
         LowerToTinyFusion.cpp 
         LowerToAffine.cpp
+        AffineAnalysis.cpp
 
         ADDITIONAL_HEADER_DIRS
         ${PROJECT_SOURCE_DIR}/includes

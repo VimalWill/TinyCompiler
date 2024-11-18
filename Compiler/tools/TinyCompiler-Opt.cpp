@@ -44,6 +44,7 @@ void indOptPipeline(mlir::OpPassManager &pm) {
 void cpuTinyCompilerPipeline(mlir::OpPassManager &pm) {
 
   indOptPipeline(pm); 
+  pm.addPass(mlir::TinyFusion::registerLoopAnalysisPass());
   
 }
 
