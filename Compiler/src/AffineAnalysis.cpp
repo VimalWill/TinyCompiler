@@ -1,11 +1,12 @@
+#include "Dialect/Passes.h"
+
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/AnalysisManager.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-
-#include "Dialect/Passes.h"
+#define CONV_TILE_DEPTH 7
 
 using namespace mlir;
 
@@ -18,9 +19,13 @@ int64_t getNestDepth(mlir::Operation *op, int64_t depth = 0) {
   return depth;
 }
 
-void estimateTilePerf() {
-  llvm::errs() << "found"
-               << "\n";
+void estimateTileSize(mlir::Operation *op) {
+  auto forOp = dyn_cast<affine::AffineForOp>(op);
+  auto lb = forOp.getLowerBoundMap();
+  auto ub = forOp.getUpperBoundMap();
+
+  if (!lb || !ub)
+    return;
 }
 
 namespace {
@@ -36,11 +41,12 @@ public:
   }
 
   void runOnOperation() override {
-    func::FuncOp funcOp = getOperation();
-    funcOp.walk([&](mlir::Operation *op) {
-      int64_t NestDepth = getNestDepth(op);
-      if (NestDepth == 7)
-        estimateTilePerf();
+    func::FuncOp func = getOperation();
+    func.walk([&](Operation *op) {
+      int64_t depth = 0;
+      if ((depth = getNestDepth(op)) == CONV_TILE_DEPTH) {
+        estimateTileSize(op);
+      }
     });
   }
 };
