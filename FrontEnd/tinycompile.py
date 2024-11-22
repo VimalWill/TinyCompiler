@@ -2,7 +2,7 @@ import torch
 import torch_mlir.fx as fx
 from torch_mlir.compiler_utils import OutputType
 
-def tinycompile(fn):
+def aot(fn):
     '''
     torch_mlir-based front-end to emit
     TOSA dialect to support AOT compilation 
